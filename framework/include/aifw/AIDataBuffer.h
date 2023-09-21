@@ -1,0 +1,146 @@
+/****************************************************************************
+ *
+ * Copyright 2022 Samsung Electronics All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific
+ * language governing permissions and limitations under the License.
+ *
+ ****************************************************************************/
+
+#pragma once
+
+#include <stdlib.h>
+#include "stdio.h"
+#include "stdint.h"
+#include "sys/types.h"
+#include "aifw/aifw.h"
+
+namespace aifw {
+
+class AIModel;
+class AIDataBufferNode;
+
+class AIDataBuffer
+{
+public:
+	/**
+	 * @brief Construct the AIDataBuffer class instance.
+	 */
+	AIDataBuffer();
+
+	/**
+	 * @brief AIDataBuffer destructor.
+	 */
+	~AIDataBuffer();
+
+	/**
+	 * @brief Read a row from buffer.
+	 * @param [OUT] buffer: Output buffer to copy data.
+	 * @param [IN] row: Index of row to read, 0 being latest row.
+	 * @return: AIFW_RESULT enum object.
+	 */
+	AIFW_RESULT readData(float *buffer, uint16_t row);
+
+	/**
+	 * @brief Read a row from buffer from column startCol to column endCol.
+	 * @param [OUT] buffer: Output buffer to copy data.
+	 * @param [IN] startCol: Starting column for reading values from buffer.
+	 * @param [IN] endCol: Last column for reading values from buffer.
+	 * @param [IN] row: Index of row to read, 0 being latest row.
+	 * @return: AIFW_RESULT enum object.
+	 */
+	AIFW_RESULT readData(float *buffer, uint16_t startCol, uint16_t endCol, uint16_t row);
+
+	/**
+	 * @brief Gives number of filled rows in the streaming buffer.
+	 * @return: Negative value indicates an error. Non negative value tells number of filled rows in buffer.
+	 */
+	uint16_t getRowCount();
+
+	friend class AIModel;
+
+private:
+	/**
+	 * @brief Creates a doubly linked list with node count equal to row and node size equal to size.
+	 * @param [IN] row: Number of rows needed in streaming buffer.
+	 * @param [IN] size: Number of values in a single row.
+	 * @return: AIFW_RESULT enum object. Before returning any error, it releases all the memory allocated.
+	 */
+	AIFW_RESULT init(uint16_t row, uint16_t size);
+
+	/**
+	 * @brief Modifies the streaming buffer.
+	 * It compares row and size with previous set value of row and size and according to that it modifies the existing nodes or create more nodes or both.
+	 * @param [IN] row: Number of rows needed in the streaming buffer.
+	 * @param [IN] size: Number of values in a single row.
+	 * @return: AIFW_RESULT enum object. In case of any error, previously allocated memory is not released.
+	 */
+	AIFW_RESULT reinit(uint16_t row, uint16_t size);
+
+	/**
+	 * @brief Deinitializes the streaming buffer.
+	 */
+	void deinit(void);
+
+	/**
+	 * @brief Clears all data in AIDataBuffer.
+	 */
+	void clear(void);
+
+	/**
+	 * @brief Writes a row into streaming buffer.
+	 * @param [IN] buffer: Input buffer from which data is copied.
+	 * @param [IN] size: Number of values in input buffer.
+	 * @return: AIFW_RESULT enum object.
+	 */
+	AIFW_RESULT writeData(float *buffer, uint16_t size);
+
+	/**
+	 * @brief Writes a row into streaming buffer from column offset to end of streaming buffer.
+	 * @param [IN] buffer: Input buffer from which data is copied.
+	 * @param [IN] size: Number of values in input buffer.
+	 * @param [IN] offset: Starting column for writing values into streaming buffer.
+	 * @return: AIFW_RESULT enum object.
+	 */
+	AIFW_RESULT writeData(float *buffer, uint16_t size, uint16_t offset);
+
+	/**
+	 * @brief Deletes a row from the streaming buffer and puts it at the end of the streaming buffer.
+	 * @param [IN] row: Index of row to delete, 0 being latest row.
+	 * @return: AIFW_RESULT enum object.
+	 */
+	AIFW_RESULT deleteData(uint16_t row);
+
+	/**
+	 * @brief Clears the memory allocated to the list with head pointer equal to ptr.
+	 * @param [IN] ptr: Pointer to the head of list.
+	 */
+	void clearMemory(AIDataBufferNode *ptr);
+
+	/**
+	 * @brief Insert count number of nodes in a doubly linked list.
+	 * @param [IN] count: Number of nodes in the list.
+	 * @param [IN] size: Number of values in a single node.
+	 * @return: AIFW_RESULT enum object.
+	 */
+	AIFW_RESULT createList(uint16_t count, uint16_t size);
+
+	AIDataBufferNode *mStart;
+	AIDataBufferNode *mEnd;
+	uint16_t mMaxRows;
+	uint16_t mRowSize;
+	uint16_t mRowCount;
+	pthread_mutex_t mLock;
+};
+
+} // namespace aifw
+
