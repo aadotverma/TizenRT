@@ -1,0 +1,6 @@
+ifeq ($(CONFIG_EXAMPLES_AIFW_TEST),y)
+MOD_CFLAGS += -I$(MOD_DIR)
+MOD_CXXFLAGS += -I$(MOD_DIR)/../ai_helper/
+CONFIGURED_APPS += examples/aifw_test/aifw_test_main/
+endif
+

@@ -1,0 +1,6 @@
+ifeq ($(CONFIG_EXAMPLES_AIFW_TEST),y)
+MOD_CXXSRCS += src/ai_helper.cpp
+MOD_CXXFLAGS += -I$(MOD_DIR)
+MOD_CXXFLAGS += -I$(MOD_DIR)/../model/sine_wave/
+endif
+

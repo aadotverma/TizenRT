@@ -24,7 +24,8 @@
 #pragma once
 
 #include <memory>
-#include "system/system_timer.h"
+#include <pthread.h>
+#include <signal.h>
 #include "aifw/aifw.h"
 #include "aifw/AIInferenceHandler.h"
 
@@ -86,24 +87,18 @@ public:
 	CollectRawDataListener getCollectRawDataCallback(void);
 
 	/**
-	 * @brief Function to be called by sytem timer every time interval it expires.
-	 * Internally gives callback to application when timer expires.
-	 * @param [IN] args: AIModelService class object.
+	 * @brief return current time interval in milliseconds
 	 */
-	static void timerTaskHandler(void *args);
+	uint32_t getTimerInterval(void);
+
+	static void aifw_timer_cb(int signo, siginfo_t *info, void *ucontext);
 
 private:
-	/**
-	 * @brief Deletes the timer and frees memory of system timer object.
-	 * @return: AIFW_RESULT enum object.
-	 */
-	AIFW_RESULT freeTimer(void);
-
 	uint16_t mInterval;
 	bool mServiceRunning;
 	std::shared_ptr<AIInferenceHandler> mInferenceHandler;
 	CollectRawDataListener mCollectRawDataCallback;
-	system_timer *mTimer;
+	pthread_t mTimerThread;
 };
 
 } /* namespace aifw */
