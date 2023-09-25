@@ -1,0 +1,103 @@
+/****************************************************************************
+ *
+ * Copyright 2023 Samsung Electronics All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific
+ * language governing permissions and limitations under the License.
+ *
+ ****************************************************************************/
+
+#include <memory>
+#include "aifw/aifw.h"
+#include "aifw/aifw_log.h"
+#include "aifw/aifw_utils.h"
+#include "aifw/AIDataBuffer.h"
+#include "SineWaveProcessHandler.h"
+
+SineWaveProcessHandler::~SineWaveProcessHandler()
+{
+}
+
+AIFW_RESULT SineWaveProcessHandler::parseData(void *data, uint16_t count, float *parsedData, AIModelAttribute *modelAttribute)
+{
+	if (!data) {
+		AIFW_LOGE("raw data from source is NULL");
+		return AIFW_INVALID_ARG;
+	}
+	if (!parsedData) {
+		AIFW_LOGE("parsed data buffer argument is NULL");
+		return AIFW_INVALID_ARG;
+	}
+    for (uint16_t i = 0; i < modelAttribute->rawDataCount; i++) {
+    	parsedData[i] = ((float *)data)[i];
+    }
+	return AIFW_OK;
+}
+
+AIFW_RESULT SineWaveProcessHandler::preProcessData(std::shared_ptr<aifw::AIDataBuffer> buffer, float *invokeInput, AIModelAttribute *modelAttribute)
+{
+	if (!buffer) {
+		AIFW_LOGE("Invalid argument - input data buffer");
+		return AIFW_INVALID_ARG;
+	}
+	if (!invokeInput) {
+		AIFW_LOGE("Invalid argument - output data buffer");
+		return AIFW_INVALID_ARG;
+	}
+	float *rawData = new float[modelAttribute->rawDataCount];
+	if (!rawData) {
+		AIFW_LOGE("Memory Allocation failed - data read buffer");
+		return AIFW_NO_MEM;
+	}
+	/* Read the parsed raw data from the latest row of buffer. At this time the latest row does not include invoke result. */
+	AIFW_RESULT res = buffer->readData(rawData, 0, modelAttribute->rawDataCount, 0);
+	if (res != AIFW_OK) {
+		AIFW_LOGE("Reading Data from the buffer failed.");
+		delete[] rawData;
+		return res;
+	}
+	/* Pre processing can be done at this point. Pre Process result save in invokeInput */
+	memcpy(invokeInput, rawData, modelAttribute->invokeInputCount * sizeof(float));
+	delete[] rawData;
+	return AIFW_OK;
+}
+
+AIFW_RESULT SineWaveProcessHandler::postProcessData(std::shared_ptr<aifw::AIDataBuffer> buffer, float *resultData, AIModelAttribute *modelAttribute)
+{
+	if (!buffer) {
+		AIFW_LOGE("Invalid argument - input data buffer");
+		return AIFW_INVALID_ARG;
+	}
+	if (!resultData) {
+		AIFW_LOGE("Invalid argument - output buffer");
+		return AIFW_INVALID_ARG;
+	}
+	float *rawdata_invokeoutput = new float[modelAttribute->rawDataCount + modelAttribute->invokeOutputCount];
+	if (!rawdata_invokeoutput) {
+		AIFW_LOGE("Memory Allocation failed - data read buffer");
+		return AIFW_NO_MEM;
+	}
+	/* Read the latest raw from buffer. At this time latest row includes parsed raw data as well as invoke result. */
+	AIFW_RESULT res = buffer->readData(rawdata_invokeoutput, 0);
+	if (res != AIFW_OK) {
+		AIFW_LOGE("Reading Data from the buffer failed.");
+		delete[] rawdata_invokeoutput;
+		return res;
+	}
+	/* Post processing of result can be done at this point. Post Process result save in resultData */
+    for (uint16_t i = 0; i < modelAttribute->postProcessResultCount; i++) {
+    	resultData[i] = rawdata_invokeoutput[modelAttribute->rawDataCount + i];
+    }
+	delete[] rawdata_invokeoutput;
+	return AIFW_INFERENCE_FINISHED;
+}
+

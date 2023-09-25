@@ -1,0 +1,2 @@
+#pragma once
+#define CONFIG_PRODUCT_AI_MODEL_FILE_SUPPORT 1

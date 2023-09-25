@@ -19,11 +19,7 @@
 #include "tinyara/config.h"
 #include "aifw/aifw.h"
 #include "aifw/aifw_log.h"
-#ifdef CONFIG_AIFW_USE_ONERT_MICRO
-#include "include/ONERTM.h"
-#elif CONFIG_AIFW_USE_TFMICRO
 #include "include/TFLM.h"
-#endif
 #include "include/AIManifestParser.h"
 #include "aifw/AIDataBuffer.h"
 #include "aifw/AIProcessHandler.h"
@@ -35,11 +31,7 @@ AIModel::AIModel(void) :
 	mBuffer(nullptr), mInvokeInput(NULL), mInvokeOutput(NULL), mParsedData(NULL), mPostProcessedData(NULL), mDataProcessor(nullptr)
 {
 
-#ifdef CONFIG_AIFW_USE_ONERT_MICRO
-	mAIEngine = std::make_shared<ONERTM>();
-#elif CONFIG_AIFW_USE_TFMICRO
 	mAIEngine = std::make_shared<TFLM>();
-#endif
 	if (!mAIEngine) {
 		AIFW_LOGE("Model Engine memory allocation failed");
 	}
@@ -48,11 +40,7 @@ AIModel::AIModel(void) :
 AIModel::AIModel(std::shared_ptr<AIProcessHandler> dataProcessor) :
 	mBuffer(nullptr), mInvokeInput(NULL), mInvokeOutput(NULL), mParsedData(NULL), mPostProcessedData(NULL), mDataProcessor(dataProcessor)
 {
-#ifdef CONFIG_AIFW_USE_ONERT_MICRO
-	mAIEngine = std::make_shared<ONERTM>();
-#elif CONFIG_AIFW_USE_TFMICRO
 	mAIEngine = std::make_shared<TFLM>();
-#endif
 	if (!mAIEngine) {
 		AIFW_LOGE("Model Engine memory allocation failed");
 	}

@@ -15,44 +15,22 @@
  * language governing permissions and limitations under the License.
  *
  ****************************************************************************/
+#pragma once
 
-/**
- * @file onert-micro.h
- * @brief AIEngine implementation for onert-micro
- */
-
-#ifndef __ONERT_MICRO_H__
-#define __ONERT_MICRO_H__
-
-#include <memory>
 #include "aifw/aifw.h"
-#include "AIEngine.h"
+#include "aifw/AIModel.h"
+#include "aifw/AIInferenceHandler.h"
 
-// forward declaration
-namespace luci_interpreter
-{
-	class Interpreter;
-}
-namespace aifw {
-
-class ONERTM : public AIEngine
+class SineWaveInferenceHandler : public aifw::AIInferenceHandler
 {
 public:
-	ONERTM();
-	~ONERTM();
-	AIFW_RESULT loadModel(const char *file);
-	AIFW_RESULT loadModel(const unsigned char *model);
-	void *invoke(void *inputData);
+	SineWaveInferenceHandler(InferenceResultListener listener);
+	~SineWaveInferenceHandler();
+
+	AIFW_RESULT onInferenceFinished(uint16_t idx, void *finalResult);
+	AIFW_RESULT prepare(void);
 
 private:
-	AIFW_RESULT _loadModel(void);
-
-	char *mBuf;
-	std::shared_ptr<luci_interpreter::Interpreter> mInterpreter;
-	uint16_t mModelInputSize;
-	uint16_t mModelOutputSize;
+	std::shared_ptr<aifw::AIModel> mSWModel;
 };
 
-} /* namespace aifw */
-
-#endif /* __ONERT_MICRO_H__ */

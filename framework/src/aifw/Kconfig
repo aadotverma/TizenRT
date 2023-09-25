@@ -22,11 +22,6 @@ config AIFW_USE_TFMICRO
     default n
     select EXTERNAL_TFMICRO
 
-config AIFW_USE_ONERT_MICRO
-    bool "Use ONERT_MICRO runtime"
-    default y
-    select EXTERNAL_ONERT_MICRO
-
 endchoice
 
 menu "AIFW Debug Logs"
