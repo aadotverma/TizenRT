@@ -71,6 +71,13 @@ AIFW_RESULT ai_helper_init(uint16_t maxModelSetCount)
 /* App to call this function */
 AIFW_RESULT ai_helper_deinit(void)
 {
+	for (int i = 0; i < gModelSetListOffset; i++) {
+		gModelSetList.get()[i].aiInferenceHandler = NULL;
+		gModelSetList.get()[i].aiModelService = NULL;
+	}
+	gModelSetList = NULL;
+	gMaxModelSetCount = 0;
+	gModelSetListOffset = 0;
 	return AIFW_OK;
 }
 

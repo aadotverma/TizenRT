@@ -52,6 +52,8 @@ static void aifw_test_deinit(void)
 	if (ai_helper_stop(gSineWaveCode) != AIFW_OK) {
 		AIFW_LOGE("AI helper stop failed");
 	}
+	ai_helper_deinit();
+	AIFW_LOGV("AI helper deinit done.");
 }
 
 /* Each Model will be inferenced for every predefined interval. AI F/W parse metadata of each model, and call this callback function 

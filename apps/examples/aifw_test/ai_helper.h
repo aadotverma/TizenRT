@@ -41,7 +41,7 @@ AIFW_RESULT ai_helper_init(uint16_t maxModelSetCount);
  * @brief It resets factory creator pointer.
  * @return: AIFW_RESULT enum object.
  */
-AIFW_RESULT ai_helper_deinit(uint16_t maxModelSetCount);
+AIFW_RESULT ai_helper_deinit(void);
 
 /**
  * @brief Starts the modelService for the corresponding modelSet.
