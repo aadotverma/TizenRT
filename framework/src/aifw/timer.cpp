@@ -1,12 +1,11 @@
 #include <semaphore.h>
 #include <signal.h>
+#include <memory>
+#include <errno.h>
 #include "aifw/timer.h"
 #include "aifw/aifw_log.h"
-#include "aifw/AIModelService.h"
 
 #define AIFW_TIMER_SIGNAL 17
-
-using namespace aifw;
 
 static sem_t gTimerSemaphore;
 static int gSignalReceivedCounter = 0;
@@ -139,14 +138,13 @@ static void *aifw_timerthread_cb(void *parameter)
 	AIFW_LOGV("aifw_timerthread_cb: Creating timer");
 	notify.sigev_notify = SIGEV_SIGNAL;
 	notify.sigev_signo = AIFW_TIMER_SIGNAL;
-	notify.sigev_value.sival_ptr = ((timer *)parameter)->function_args;
+	notify.sigev_value.sival_ptr = parameter;
 	status = timer_create(CLOCK_REALTIME, &notify, &(((timer *)parameter)->id));
+	timerId = ((timer *)parameter)->id;
 	if (status != OK) {
 		AIFW_LOGE("aifw_timerthread_cb: timer_create failed, errno=%d", errno);
 		goto errorout;
 	}
-
-	timerId = ((timer *)parameter)->id;
 
 	/* Start the POSIX timer */
 	AIFW_LOGV("aifw_timerthread_cb: Starting timer");
@@ -213,10 +211,6 @@ static void aifw_timer_cb(int signo, siginfo_t *info, void *ucontext)
 	}
 	AIFW_LOGV("aifw_timer_cb: si_code=%d (SI_TIMER)", info->si_code);
 	gSignalReceivedCounter++;
-	AIModelService *arg = (AIModelService *)info->si_value.sival_ptr;
-	if (!arg) {
-		AIFW_LOGE("null argument received");
-		return;
-	}
-	(arg->getCollectRawDataCallback())();
+	timer *timer = (struct::timer *)info->si_value.sival_ptr;
+	timer->function(timer->function_args);
 }
