@@ -22,6 +22,7 @@ struct timer{
     unsigned int interval;
     bool enable;
     int signalReceivedCounter;
+    sem_t semaphore;
 };
 
 timer_result create_timer(timer *timer, void *timer_function, void *function_args, unsigned int interval);

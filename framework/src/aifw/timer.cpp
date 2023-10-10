@@ -25,7 +25,7 @@
 
 #define AIFW_TIMER_SIGNAL 17
 
-static sem_t gTimerSemaphore;
+// static sem_t gTimerSemaphore;
 
 static void aifw_timer_cb(int signo, siginfo_t *info, void *ucontext);
 static void *aifw_timerthread_cb(void *parameter);
@@ -109,13 +109,14 @@ timer_result timer_stop(timer *timer)
 		return TIMER_INVALID_ARGS;
 	}
 	AIFW_LOGV("Stop Timer");
-	if (sem_post(&gTimerSemaphore) != 0) {
+	if (sem_post(&(timer->semaphore)) != 0) {
 		AIFW_LOGE("Timer stop failed, error: %d", errno);
 		return TIMER_FAIL;
 	}
 	timer->enable = false;
 	timer->signalReceivedCounter = 0;
 	AIFW_LOGV("Stop Timer posted");	
+	sleep(5);
 	return TIMER_SUCCESS;
 }
 
@@ -147,7 +148,7 @@ static void *aifw_timerthread_cb(void *parameter)
 	uint64_t interval_nsecs = (((timer *)parameter)->interval % 1000) * 1000000;
 
 	AIFW_LOGV("aifw_timerthread_cb: Initializing semaphore to 0");
-	sem_init(&gTimerSemaphore, 0, 0);
+	sem_init(&(((timer *)parameter)->semaphore), 0, 0);
 
 	/* Start waiter thread  */
 	AIFW_LOGV("aifw_timerthread_cb: Unmasking signal %d", AIFW_TIMER_SIGNAL);
@@ -201,7 +202,7 @@ static void *aifw_timerthread_cb(void *parameter)
 	/* Take the semaphore */
 	while (1) {
 		AIFW_LOGV("aifw_timerthread_cb: Waiting on semaphore");
-		status = sem_wait(&gTimerSemaphore);
+		status = sem_wait(&(((timer *)parameter)->semaphore));
 		if (status != 0) {
 			int error = errno;
 			if (error == EINTR) {
@@ -217,7 +218,7 @@ static void *aifw_timerthread_cb(void *parameter)
 	}
 errorout:
 	AIFW_LOGV("sem_destroy");
-	sem_destroy(&gTimerSemaphore);
+	sem_destroy(&(((timer *)parameter)->semaphore));
 	/* Then delete the timer */
 	AIFW_LOGV("aifw_timerthread_cb: Deleting timer");
 	status = timer_delete(timerId);
