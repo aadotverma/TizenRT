@@ -70,6 +70,7 @@ public:
 protected:
 	/**
 	 * @brief Performs operations on post processed results of attached models in the model set.
+	 * This function will be called always when inference cycle of a model set is finished successfully.
 	 * @param [IN] idx: Index of last model till which inference is performed.
 	 * @param [OUT] finalResult: Ensembled result of modelSet.
 	 * @return: AIFW_RESULT enum object.

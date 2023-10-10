@@ -43,6 +43,7 @@ public:
 
 	/**
 	 * @brief Parses AI data from entire of raw data and writes it to the parsedData buffer.
+	 * Data can be selected or new data can be created using different raw data values.
 	 * @param [IN] data: Input raw data. It is entire of sensor data set, developer should parse data from it.
 	 * @param [IN] count: Length of input raw data.
 	 * @param [OUT] parsedData: Pointer of buffer to store postprocessed data. AIFW should write parsed data in AIDataBuffer.

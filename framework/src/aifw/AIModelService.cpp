@@ -40,8 +40,8 @@ AIModelService::~AIModelService()
 AIFW_RESULT AIModelService::freeTimer(void)
 {
 	if (mTimer) {
-		system_result res = timer_destroy(mTimer);
-		if (res != SYSTEM_SUCCESS) {
+		timer_result res = timer_destroy(mTimer);
+		if (res != TIMER_SUCCESS) {
 			AIFW_LOGE("Destroying timer failed. ret: %d", res);
 			return AIFW_ERROR;
 		}
@@ -81,9 +81,9 @@ AIFW_RESULT AIModelService::stop(void)
 		mServiceRunning = false;
 		return AIFW_OK;
 	}
-	system_result dret = SYSTEM_SUCCESS;
+	timer_result dret = TIMER_SUCCESS;
 	dret = timer_stop(mTimer);
-	if (dret != SYSTEM_SUCCESS) {
+	if (dret != TIMER_SUCCESS) {
 		AIFW_LOGE("Timer stop failed, error: %d", dret);
 		return AIFW_ERROR;
 	}
@@ -94,7 +94,7 @@ AIFW_RESULT AIModelService::stop(void)
 /* ToDo: Interval needs to be updated in json file so that updated value is used after device restarts */
 AIFW_RESULT AIModelService::setInterval(uint16_t interval)
 {
-	system_result ret;
+	timer_result ret;
 	if (!mTimer) {
 		AIFW_LOGE("Timer not created yet, Ignoring request");
 		return AIFW_ERROR;
@@ -104,7 +104,7 @@ AIFW_RESULT AIModelService::setInterval(uint16_t interval)
 		return AIFW_ERROR;
 	}
 	ret = timer_change_interval(mTimer, (unsigned int)interval);
-	if (ret != SYSTEM_SUCCESS) {
+	if (ret != TIMER_SUCCESS) {
 		AIFW_LOGE("timer interval change failed=%d", ret);
 		return AIFW_ERROR;
 	}
@@ -137,10 +137,10 @@ AIFW_RESULT AIModelService::prepare(void)
 			AIFW_LOGE("Memory allocation failed for timer");
 			return AIFW_NO_MEM;
 		}
-		system_result ret;
+		timer_result ret;
 		/* create timer */
-		ret = timerCreate(mTimer, (void *)timerTaskHandler, (void *)this, mInterval);
-		if (ret != SYSTEM_SUCCESS) {
+		ret = create_timer(mTimer, (void *)timerTaskHandler, (void *)this, mInterval);
+		if (ret != TIMER_SUCCESS) {
 			AIFW_LOGE("Timer creation failed. ret: %d", ret);
 			return AIFW_ERROR;
 		}

@@ -53,8 +53,8 @@ public:
 	/**
 	 * @brief Read a row from buffer from column startCol to column endCol.
 	 * @param [OUT] buffer: Output buffer to copy data.
-	 * @param [IN] startCol: Starting column for reading values from buffer.
-	 * @param [IN] endCol: Last column for reading values from buffer.
+	 * @param [IN] startCol: Starting column of row for reading values from buffer.
+	 * @param [IN] endCol: Last column of row for reading values from buffer.
 	 * @param [IN] row: Index of row to read, 0 being latest row.
 	 * @return: AIFW_RESULT enum object.
 	 */
@@ -92,12 +92,13 @@ private:
 	void deinit(void);
 
 	/**
-	 * @brief Clears all data in AIDataBuffer.
+	 * @brief Marks all nodes empty and sets number of filled nodes to 0 in AIDataBuffer 
 	 */
 	void clear(void);
 
 	/**
 	 * @brief Writes a row into streaming buffer.
+	 * Last node is detached and attached at the starting of the linked list. Values are then written in that node.
 	 * @param [IN] buffer: Input buffer from which data is copied.
 	 * @param [IN] size: Number of values in input buffer.
 	 * @return: AIFW_RESULT enum object.
@@ -105,7 +106,7 @@ private:
 	AIFW_RESULT writeData(float *buffer, uint16_t size);
 
 	/**
-	 * @brief Writes a row into streaming buffer from column offset to end of streaming buffer.
+	 * @brief Writes values from column number offset to end column of starting row of streaming buffer.
 	 * @param [IN] buffer: Input buffer from which data is copied.
 	 * @param [IN] size: Number of values in input buffer.
 	 * @param [IN] offset: Starting column for writing values into streaming buffer.
@@ -114,8 +115,8 @@ private:
 	AIFW_RESULT writeData(float *buffer, uint16_t size, uint16_t offset);
 
 	/**
-	 * @brief Deletes a row from the streaming buffer and puts it at the end of the streaming buffer.
-	 * @param [IN] row: Index of row to delete, 0 being latest row.
+	 * @brief Deletes a row data and puts that row at the end of the streaming buffer.
+	 * @param [IN] row: Index of row whose data needs to be deleted, 0 being latest row.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	AIFW_RESULT deleteData(uint16_t row);

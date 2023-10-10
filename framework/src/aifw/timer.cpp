@@ -1,3 +1,21 @@
+/****************************************************************************
+ *
+ * Copyright 2023 Samsung Electronics All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific
+ * language governing permissions and limitations under the License.
+ *
+ ****************************************************************************/
+
 #include <semaphore.h>
 #include <signal.h>
 #include <memory>
@@ -8,45 +26,59 @@
 #define AIFW_TIMER_SIGNAL 17
 
 static sem_t gTimerSemaphore;
-static int gSignalReceivedCounter = 0;
 
 static void aifw_timer_cb(int signo, siginfo_t *info, void *ucontext);
 static void *aifw_timerthread_cb(void *parameter);
 
-system_result timerCreate(timer *timer, void *timer_function, void *function_args, unsigned int interval)
+timer_result create_timer(timer *timer, void *timer_function, void *function_args, unsigned int interval)
 {
-	if (timer == NULL || timer_function == NULL || interval == 0 || interval > 0x7FFFFFFF) {
-		return SYSTEM_INVALID_ARGS;
+	if (!timer) {
+		AIFW_LOGE("Pointer to timer structure is NULL");
+		return TIMER_INVALID_ARGS;
 	}
-	/* Fill value in timer structure */
+	if (!timer_function) {
+		AIFW_LOGE("Pointer to timer function is NULL");
+		return TIMER_INVALID_ARGS;
+	}
+	if (interval <= 0 || interval > 0x7FFFFFFF) {
+		AIFW_LOGE("Value of timer interval is out of bounds");
+		return TIMER_INVALID_ARGS;
+	}
+	/* Fill values in timer structure */
 	timer->function = (timer_callback)timer_function;
 	timer->function_args = function_args;
 	timer->interval = interval;
 	timer->enable = false;
-	return SYSTEM_SUCCESS;
+	timer->signalReceivedCounter = 0;
+	return TIMER_SUCCESS;
 }
 
-system_result timer_start(timer *timer)
+timer_result timer_start(timer *timer)
 {
-	if (timer == NULL/*|| timer->id == NULL*/ || timer->function == NULL) {
-		return SYSTEM_INVALID_ARGS;
+	if (!timer) {
+		AIFW_LOGE("Pointer to timer structure is NULL");
+		return TIMER_INVALID_ARGS;
 	}
 	AIFW_LOGV("Start Timer");
 	pthread_t timerThread;
 	int result = pthread_create(&timerThread, NULL, aifw_timerthread_cb, (void *)timer);
 	if (result != 0) {
 		AIFW_LOGE("ERROR Failed to start aifw_timerthread_cb");
-		return SYSTEM_FAIL;
+		return TIMER_FAIL;
 	}
 	AIFW_LOGV("Started aifw_timerthread_cb");
-	return SYSTEM_SUCCESS;
+	return TIMER_SUCCESS;
 }
 
-system_result timer_change_interval(timer *timer, unsigned int interval)
+timer_result timer_change_interval(timer *timer, unsigned int interval)
 {
+	if (!timer) {
+		AIFW_LOGE("Pointer to timer structure is NULL");
+		return TIMER_INVALID_ARGS;
+	}
 	if (interval <= 0) {
 		AIFW_LOGE("Invalid argument interval: %d", interval);
-		return SYSTEM_INVALID_ARGS;
+		return TIMER_INVALID_ARGS;
 	}
 	timer->interval = interval;
 	if (!timer->enable) {
@@ -64,32 +96,37 @@ system_result timer_change_interval(timer *timer, unsigned int interval)
 	int status = timer_settime(timer->id, 0, &its, NULL);
 	if (status != OK) {
 		AIFW_LOGE("setInterval: timer_settime failed, errno: %d", errno);
-		return SYSTEM_FAIL;
+		return TIMER_FAIL;
 	}
-	return SYSTEM_SUCCESS;
+	return TIMER_SUCCESS;
 }
 
 
-system_result timer_stop(timer *timer)
+timer_result timer_stop(timer *timer)
 {
+	if (!timer) {
+		AIFW_LOGE("Pointer to timer structure is NULL");
+		return TIMER_INVALID_ARGS;
+	}
 	AIFW_LOGV("Stop Timer");
 	if (sem_post(&gTimerSemaphore) != 0) {
 		AIFW_LOGE("Timer stop failed, error: %d", errno);
-		return SYSTEM_FAIL;
+		return TIMER_FAIL;
 	}
 	timer->enable = false;
-	gSignalReceivedCounter = 0;
+	timer->signalReceivedCounter = 0;
 	AIFW_LOGV("Stop Timer posted");	
-	return SYSTEM_SUCCESS;
+	return TIMER_SUCCESS;
 }
 
-system_result timer_destroy(timer *timer)
+timer_result timer_destroy(timer *timer)
 {
-	if (timer == NULL) {
-		return SYSTEM_INVALID_ARGS;
+	if (!timer) {
+		AIFW_LOGE("Pointer to timer structure is NULL");
+		return TIMER_INVALID_ARGS;
 	}
 	memset(timer, 0, sizeof(struct::timer));
-	return SYSTEM_SUCCESS;
+	return TIMER_SUCCESS;
 }
 
 static void *aifw_timerthread_cb(void *parameter)
@@ -176,7 +213,7 @@ static void *aifw_timerthread_cb(void *parameter)
 			AIFW_LOGI("aifw_timerthread_cb: ERROR awakened with no error!");
 			break;
 		}
-		AIFW_LOGV("aifw_timerthread_cb: Signal received counter: %d", gSignalReceivedCounter);
+		AIFW_LOGV("aifw_timerthread_cb: Signal received counter: %d", ((timer *)parameter)->signalReceivedCounter);
 	}
 errorout:
 	AIFW_LOGV("sem_destroy");
@@ -210,7 +247,7 @@ static void aifw_timer_cb(int signo, siginfo_t *info, void *ucontext)
 		return;
 	}
 	AIFW_LOGV("aifw_timer_cb: si_code=%d (SI_TIMER)", info->si_code);
-	gSignalReceivedCounter++;
 	timer *timer = (struct::timer *)info->si_value.sival_ptr;
+	timer->signalReceivedCounter++;
 	timer->function(timer->function_args);
 }
