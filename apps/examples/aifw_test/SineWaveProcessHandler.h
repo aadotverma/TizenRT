@@ -24,10 +24,15 @@
 class SineWaveProcessHandler : public aifw::AIProcessHandler
 {
 public:
+	SineWaveProcessHandler();
 	~SineWaveProcessHandler();
 
 	AIFW_RESULT parseData(void *data, uint16_t count, float *parsedData, AIModelAttribute *modelAttribute);
 	AIFW_RESULT preProcessData(std::shared_ptr<aifw::AIDataBuffer> buffer, float *invokeInput, AIModelAttribute *modelAttribute);
 	AIFW_RESULT postProcessData(std::shared_ptr<aifw::AIDataBuffer> buffer, float *resultData, AIModelAttribute *modelAttribute);
+
+private:
+	float *mRawData;
+	float *mInvokeOutput;
 };
 

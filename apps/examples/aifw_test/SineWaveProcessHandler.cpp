@@ -23,8 +23,20 @@
 #include "aifw/AIDataBuffer.h"
 #include "SineWaveProcessHandler.h"
 
+SineWaveProcessHandler::SineWaveProcessHandler() : mRawData(NULL), mInvokeOutput(NULL)
+{
+}
+
 SineWaveProcessHandler::~SineWaveProcessHandler()
 {
+	if (mRawData) {
+		delete[] mRawData;
+		mRawData = NULL;
+	}
+	if (mInvokeOutput) {
+		delete[] mInvokeOutput;
+		mInvokeOutput = NULL;
+	}
 }
 
 AIFW_RESULT SineWaveProcessHandler::parseData(void *data, uint16_t count, float *parsedData, AIModelAttribute *modelAttribute)
@@ -53,21 +65,22 @@ AIFW_RESULT SineWaveProcessHandler::preProcessData(std::shared_ptr<aifw::AIDataB
 		AIFW_LOGE("Invalid argument - output data buffer");
 		return AIFW_INVALID_ARG;
 	}
-	float *rawData = new float[modelAttribute->rawDataCount];
-	if (!rawData) {
-		AIFW_LOGE("Memory Allocation failed - data read buffer");
-		return AIFW_NO_MEM;
+	if (!mRawData) {
+		mRawData = new float[modelAttribute->rawDataCount];
+		if (!mRawData) {
+			AIFW_LOGE("Memory Allocation failed - data read buffer");
+			return AIFW_NO_MEM;
+		}
 	}
 	/* Read the parsed raw data from the latest row of buffer. At this time the latest row does not include invoke result. */
-	AIFW_RESULT res = buffer->readData(rawData, 0, modelAttribute->rawDataCount, 0);
+	AIFW_RESULT res = buffer->readData(mRawData, 0, modelAttribute->rawDataCount, 0);
 	if (res != AIFW_OK) {
-		AIFW_LOGE("Reading Data from the buffer failed.");
-		delete[] rawData;
+		AIFW_LOGE("Reading Data from the buffer failed. ret: %d", res);
+		/* Check if deleting mRawData is necessary */
 		return res;
 	}
 	/* Pre processing can be done at this point. Pre Process result save in invokeInput */
-	memcpy(invokeInput, rawData, modelAttribute->invokeInputCount * sizeof(float));
-	delete[] rawData;
+	memcpy(invokeInput, mRawData, modelAttribute->invokeInputCount * sizeof(float));
 	return AIFW_OK;
 }
 
@@ -81,23 +94,22 @@ AIFW_RESULT SineWaveProcessHandler::postProcessData(std::shared_ptr<aifw::AIData
 		AIFW_LOGE("Invalid argument - output buffer");
 		return AIFW_INVALID_ARG;
 	}
-	float *rawdata_invokeoutput = new float[modelAttribute->rawDataCount + modelAttribute->invokeOutputCount];
-	if (!rawdata_invokeoutput) {
-		AIFW_LOGE("Memory Allocation failed - data read buffer");
-		return AIFW_NO_MEM;
+	if (!mInvokeOutput) {
+		mInvokeOutput = new float[modelAttribute->invokeOutputCount];
+		if (!mInvokeOutput) {
+			AIFW_LOGE("Memory Allocation failed - data read buffer");
+			return AIFW_NO_MEM;
+		}
 	}
 	/* Read the latest raw from buffer. At this time latest row includes parsed raw data as well as invoke result. */
-	AIFW_RESULT res = buffer->readData(rawdata_invokeoutput, 0);
+	AIFW_RESULT res = buffer->readData(mInvokeOutput, modelAttribute->rawDataCount, (modelAttribute->rawDataCount + modelAttribute->invokeOutputCount), 0);
 	if (res != AIFW_OK) {
 		AIFW_LOGE("Reading Data from the buffer failed.");
-		delete[] rawdata_invokeoutput;
+		/* Check if deleting mInvokeOutput is necassary */
 		return res;
 	}
 	/* Post processing of result can be done at this point. Post Process result save in resultData */
-    for (uint16_t i = 0; i < modelAttribute->postProcessResultCount; i++) {
-    	resultData[i] = rawdata_invokeoutput[modelAttribute->rawDataCount + i];
-    }
-	delete[] rawdata_invokeoutput;
+	memcpy(resultData, mInvokeOutput, modelAttribute->postProcessResultCount * sizeof(float));
 	return AIFW_INFERENCE_FINISHED;
 }
 
