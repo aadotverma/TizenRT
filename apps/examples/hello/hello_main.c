@@ -53,13 +53,39 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-
 #include <tinyara/config.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <pthread.h>
+/**********************************************************************/
 
-/****************************************************************************
- * hello_main
- ****************************************************************************/
+int r1, total_produced = 0, total_consume = 0, capacity = 10, Full = 0, Empty = 10, mutex = 1;
+
+void *produce(void *arg)
+{
+	while (total_produced < 100) {
+		while (capacity == Full) ;
+		while (mutex == 0) ;
+		printf("Producer produces item. Total produced = %d  difference= %d\n", ++total_produced, total_produced - total_consume);
+		++Full;
+		Empty--;
+		mutex = 0;
+	}
+}
+
+// Consumer Section
+void *consume(void *arg)
+{
+	while (total_consume < 100) {
+		while (capacity == Empty) ;
+		while (mutex == 1) ;
+		printf("Consumer consumes item. Total consumed = %d   difference= %d\n", ++total_consume, total_produced - total_consume);
+		Empty++;
+		Full--;
+		mutex = 1;
+	}
+}
 
 #ifdef CONFIG_BUILD_KERNEL
 int main(int argc, FAR char *argv[])
@@ -67,6 +93,38 @@ int main(int argc, FAR char *argv[])
 int hello_main(int argc, char *argv[])
 #endif
 {
-	printf("Hello, World!!\n");
+	pthread_t producer, consumer;
+	r1 = pthread_create(&producer, NULL, produce, NULL);
+	if (r1) {
+		printf("Error in creating thread.\n");
+		_exit(-1);
+	} else {
+		printf("created thread 1.\n");
+	}
+
+	r1 = pthread_create(&consumer, NULL, consume, NULL);
+	if (r1) {
+		printf("Error in creating thread.\n");
+		_exit(-1);
+	} else {
+		printf("created thread 2.\n");
+	}
+	sleep(5);
+	r1 = pthread_join(producer, NULL);
+	if (r1) {
+		printf("Error in joining thread.\n");
+		_exit(-1);
+	} else {
+		printf("joining thread 1.\n");
+	}
+
+	r1 = pthread_join(consumer, NULL);
+	if (r1) {
+		printf("joining thread 2.\n");
+		_exit(-1);
+	} else {
+		printf("joining thread 2.\n");
+	}
+	pthread_exit(NULL);
 	return 0;
 }
