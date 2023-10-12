@@ -60,16 +60,15 @@
 #include <pthread.h>
 /**********************************************************************/
 
-int r1, total_produced = 0, total_consume = 0, capacity = 10, Full = 0, Empty = 10, mutex = 1;
+int r1, total_produced = 0, total_consume = 0, mutex = 1;
 
 void *produce(void *arg)
 {
 	while (total_produced < 100) {
-		while (capacity == Full) ;
-		while (mutex == 0) ;
+		while (mutex == 0) {
+			printf("Producer waiting\n");
+		}
 		printf("Producer produces item. Total produced = %d  difference= %d\n", ++total_produced, total_produced - total_consume);
-		++Full;
-		Empty--;
 		mutex = 0;
 	}
 }
@@ -78,11 +77,10 @@ void *produce(void *arg)
 void *consume(void *arg)
 {
 	while (total_consume < 100) {
-		while (capacity == Empty) ;
-		while (mutex == 1) ;
+		while (mutex == 1) {
+			printf("Consumer waiting\n");
+		}
 		printf("Consumer consumes item. Total consumed = %d   difference= %d\n", ++total_consume, total_produced - total_consume);
-		Empty++;
-		Full--;
 		mutex = 1;
 	}
 }
