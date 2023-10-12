@@ -53,13 +53,65 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-
 #include <tinyara/config.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
 
-/****************************************************************************
- * hello_main
- ****************************************************************************/
+#define BUFFER_SIZE 5
+#define MAX_ITEMS 20
+
+int sharedBuffer[BUFFER_SIZE];
+int producingIndex;
+int consumingIndex;
+int produced_count;
+int consumed_count;
+
+sem_t semaphore;
+sem_t consumerSemaphore;
+sem_t producerSemaphore;
+
+void *producer(void *arg)
+{
+	int itemNumber = 1;
+
+	while (produced_count < MAX_ITEMS) {
+		sem_wait(&producerSemaphore);
+		sem_wait(&semaphore);
+
+		sharedBuffer[producingIndex] = itemNumber;
+		printf("Produced item number: %d\n", itemNumber);
+		itemNumber++;
+		producingIndex = (producingIndex + 1) % BUFFER_SIZE;
+
+		produced_count++;
+
+		sem_post(&semaphore);
+		sem_post(&consumerSemaphore);
+	}
+
+	pthread_exit(NULL);
+}
+
+void *consumer(void *arg)
+{
+	while (consumed_count < MAX_ITEMS) {
+		sem_wait(&consumerSemaphore);
+		sem_wait(&semaphore);
+
+		int itemNumber = sharedBuffer[consumingIndex];
+		printf("Consumed item number: %d\n", itemNumber);
+		consumingIndex = (consumingIndex + 1) % BUFFER_SIZE;
+
+		consumed_count++;
+
+		sem_post(&semaphore);
+		sem_post(&producerSemaphore);
+	}
+
+	pthread_exit(NULL);
+}
 
 #ifdef CONFIG_BUILD_KERNEL
 int main(int argc, FAR char *argv[])
@@ -67,6 +119,26 @@ int main(int argc, FAR char *argv[])
 int hello_main(int argc, char *argv[])
 #endif
 {
-	printf("Hello, World!!\n");
+	producingIndex = 0;
+	consumingIndex = 0;
+	produced_count = 0;
+	consumed_count = 0;
+
+	pthread_t producerThread, consumerThread;
+
+	sem_init(&semaphore, 0, 1);
+	sem_init(&consumerSemaphore, 0, 0);
+	sem_init(&producerSemaphore, 0, BUFFER_SIZE);
+
+	pthread_create(&producerThread, NULL, producer, NULL);
+	pthread_create(&consumerThread, NULL, consumer, NULL);
+
+	pthread_join(producerThread, NULL);
+	pthread_join(consumerThread, NULL);
+
+	sem_destroy(&semaphore);
+	sem_destroy(&consumerSemaphore);
+	sem_destroy(&producerSemaphore);
+
 	return 0;
 }
