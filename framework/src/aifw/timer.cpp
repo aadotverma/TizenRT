@@ -25,8 +25,6 @@
 
 #define AIFW_TIMER_SIGNAL 17
 
-// static sem_t gTimerSemaphore;
-
 static void aifw_timer_cb(int signo, siginfo_t *info, void *ucontext);
 static void *aifw_timerthread_cb(void *parameter);
 
@@ -116,7 +114,6 @@ timer_result timer_stop(timer *timer)
 	timer->enable = false;
 	timer->signalReceivedCounter = 0;
 	AIFW_LOGV("Stop Timer posted");	
-	sleep(5);
 	return TIMER_SUCCESS;
 }
 
@@ -126,7 +123,6 @@ timer_result timer_destroy(timer *timer)
 		AIFW_LOGE("Pointer to timer structure is NULL");
 		return TIMER_INVALID_ARGS;
 	}
-	memset(timer, 0, sizeof(struct::timer));
 	return TIMER_SUCCESS;
 }
 
