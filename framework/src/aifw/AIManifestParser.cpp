@@ -47,7 +47,7 @@ namespace aifw {
 
 AIManifestParser::~AIManifestParser()
 {
-	AIFW_LOGE(":DEINIT:");
+	AIFW_LOGV(":DEINIT:");
 	mJSON.reset();
 }
 

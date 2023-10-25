@@ -100,14 +100,12 @@ AIFW_RESULT AIModel::createDataBuffer(void)
 	}
 	if (mDataProcessor) {
 		res = mBuffer->init(mModelAttribute.maxRowsDataBuffer, (mModelAttribute.rawDataCount + mModelAttribute.invokeOutputCount));
-		if (res != AIFW_OK) {
-			AIFW_LOGE("model data buffer initialization failed.");
-		}
 	} else {
 		res = mBuffer->init(mModelAttribute.maxRowsDataBuffer, (mModelAttribute.invokeInputCount + mModelAttribute.invokeOutputCount));
-		if (res != AIFW_OK) {
-			AIFW_LOGE("model data buffer initialization failed.");
-		}
+	}
+	if (res != AIFW_OK) {
+		AIFW_LOGE("model data buffer initialization failed.");
+		return res;
 	}
 	AIFW_LOGV("Buffer creation and initialization done");
 	return res;
@@ -291,6 +289,11 @@ AIFW_RESULT AIModel::invoke(void)
 			AIFW_LOGE("preProcessData failed, error: %d", res);
 			return res;
 		}
+#ifdef CONFIG_AIFW_LOGV
+		for (uint16_t i = 0; i < mModelAttribute.invokeInputCount; i++) {
+			AIFW_LOGV("invokeInput[%d] : %f", i, mInvokeInput[i]);
+		}
+#endif
 		invokeResult = (float *)mAIEngine->invoke(mInvokeInput);
 		if (!invokeResult) {
 			AIFW_LOGE("Engine Invoke failed.");
@@ -299,6 +302,9 @@ AIFW_RESULT AIModel::invoke(void)
 		AIFW_LOGV("invoke completed fine");
 		for (uint16_t i = 0; i < mModelAttribute.invokeOutputCount; i++) {
 			mInvokeOutput[i] = invokeResult[i];
+#ifdef CONFIG_AIFW_LOGV
+			AIFW_LOGV("invokeOutput[%d] : %f", i, mInvokeOutput[i]);
+#endif
 		}
 		res = mBuffer->writeData(mInvokeOutput, mModelAttribute.invokeOutputCount, mModelAttribute.rawDataCount);
 		if (res != AIFW_OK) {
@@ -318,17 +324,27 @@ AIFW_RESULT AIModel::invoke(void)
 			AIFW_LOGE("Reading Data from the buffer failed, error: %d", res);
 			return res;
 		}
+#ifdef CONFIG_AIFW_LOGV
+		for (uint16_t i = 0; i < mModelAttribute.invokeInputCount; i++) {
+			AIFW_LOGV("invokeInput[%d] : %f", i, mInvokeInput[i]);
+		}
+#endif
 		invokeResult = (float *)mAIEngine->invoke(mInvokeInput);
 		if (!invokeResult) {
 			AIFW_LOGE("Engine Invoke failed.");
 			return AIFW_ERROR;
 		}
+		AIFW_LOGV("invoke completed fine");
 		for (uint16_t i = 0; i < mModelAttribute.invokeOutputCount; i++) {
 			mInvokeOutput[i] = invokeResult[i];
+#ifdef CONFIG_AIFW_LOGV
+			AIFW_LOGV("invokeOutput[%d] : %f", i, mInvokeOutput[i]);
+#endif
 		}
 		res = mBuffer->writeData(mInvokeOutput, mModelAttribute.invokeOutputCount, mModelAttribute.invokeInputCount);
 		if (res != AIFW_OK) {
 			AIFW_LOGE("Writing invoke result to the buffer failed, error: %d", res);
+			return res;
 		}
 		AIFW_LOGV("read data, invoke and write data completed OK");
 		return res;
@@ -361,6 +377,7 @@ AIFW_RESULT AIModel::pushData(void *data, uint16_t count)
 		res = mBuffer->writeData(mParsedData, mModelAttribute.rawDataCount);
 		if (res != AIFW_OK) {
 			AIFW_LOGE("Writing Data to the buffer failed, error: %d", res);
+			return res;
 		}
 
 		/* So we will skip invoke */

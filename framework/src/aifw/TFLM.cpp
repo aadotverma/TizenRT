@@ -16,6 +16,7 @@
  *
  ****************************************************************************/
 
+#include "tinyara/config.h"
 #include <iostream>
 #include <tensorflow/lite/c/common.h>
 #include <tensorflow/lite/schema/schema_generated.h>
@@ -41,7 +42,11 @@ TFLM::TFLM() :
 	mModel(NULL), mBuf(NULL), mInterpreter(NULL), mErrorReporter(NULL), mInput(NULL), mOutput(NULL), mModelInputSize(0), mModelOutputSize(0)
 {
 	this->mTensorArenaSize = AIFW_TFLM_POOL_SIZE;
+	AIFW_LOGV("Tensor Arena size: %d", this->mTensorArenaSize);
 	std::shared_ptr<uint8_t> tensorArena(new uint8_t[this->mTensorArenaSize], std::default_delete<uint8_t[]>());
+	if (tensorArena.get() == NULL) {
+		AIFW_LOGE("tensor arena memory allocation failed");
+	}
 	this->mTensorArena = tensorArena;
 }
 
@@ -87,7 +92,7 @@ AIFW_RESULT TFLM::_loadModel(void)
 #endif
 	this->mModelInputSize = 1;
 	for (int i = 0; i < input_dims_size; i++) {
-		AIFW_LOGV("%d", this->mInput->dims->data[i]);
+		AIFW_LOGV("InputDims[%d] value: %d", i, this->mInput->dims->data[i]);
 		this->mModelInputSize *= this->mInput->dims->data[i];
 	}
 #if 0
@@ -98,7 +103,7 @@ AIFW_RESULT TFLM::_loadModel(void)
 #endif
 	this->mModelOutputSize = 1;
 	for (uint8_t i = 0; i < output_dims_size; i++) {
-		AIFW_LOGV("%d ", this->mOutput->dims->data[i]);
+		AIFW_LOGV("OutputDims[%d] value: %d", i, this->mOutput->dims->data[i]);
 		this->mModelOutputSize *= this->mOutput->dims->data[i];
 	}
 	AIFW_LOGV("mModelInputSize = %d mModelOutputSize = %d", mModelInputSize, mModelOutputSize);
