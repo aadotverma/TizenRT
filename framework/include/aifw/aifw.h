@@ -40,7 +40,7 @@ extern "C" {
 typedef enum _AIFW_RESULT {
 	AIFW_OK = 0,			/* OK: Without any error  */
 	AIFW_INFERENCE_FINISHED = 1,	/* Inference Finished */
-	AIFW_INFERENCE_PROCEEDING = 2,	/* Return it if any of ai model should invoke many times for single inference */
+	AIFW_INFERENCE_PROCEEDING = 2,	/* Return it if any of ai model should invoke many times for single inference or it should skip invoke until it collects raw data certain number of times */
 	AIFW_ERROR = -1,		/* ERROR: All other types of error not specified by any following enum */
 	AIFW_NO_MEM = -2,		/* Memory allocation (malloc/calloc) failed */
 	AIFW_ERROR_FILE_ACCESS = -3,	/* File access error */
@@ -57,13 +57,21 @@ typedef enum _AIFW_RESULT {
 	AIFW_SOURCE_EOF = -14,	/* End Of File or End of Source data */
 } AIFW_RESULT;
 
-/* Callback function for timer expiry listener. It is expected that callee will not hold this thread */
+/**
+ * @brief: AI Framework calls this function to collect the raw data and pass it for inference.
+ * This callback is called when timer expires. Time interval is set in 'inferenceInterval' field of AIModelAttribute structure.
+ * It is expected that callee will not hold this thread.
+*/
 typedef void (*CollectRawDataListener)(void);
 
-/* Callback function for inference result listener. */
-/* res: AIFW_RESULT enum object */
-/* values: inference result */
-/* count: count of values in inference result */
+/**
+ * @brief: Application will receive inference result in this function.
+ * It is mandatory to be defined by each application.
+ * An application can use this function to set inference result to device via SCube.
+ * @param [in] res: Successful inference operation 'res' is set to AIFW_OK. Errors are set as per AIFW_RESULT enum values.
+ * @param [in] values: inference result values after ensembling 
+ * @param [in] count: count of values in inference result
+*/
 typedef void (*InferenceResultListener)(AIFW_RESULT res, void *values, uint16_t count);
 
 /**
@@ -72,19 +80,19 @@ typedef void (*InferenceResultListener)(AIFW_RESULT res, void *values, uint16_t 
  * version: AI Model version
  * modelPath: Path of file based AI Model
  * model: Array based AI Model
- * features: Features list to identify data values from data source
+ * features: Features list to identify relevant raw data values for AI Model from data source
  * featuresCount: Number of elements in Features list
  * inferenceInterval: Interval at which data is sent to model for inference
  * modelCode: 32 bit value to identify model for OTN
- * maxRowsDataBuffer: Maximum number of rows to store in buffer
- * rawDataCount: Count of rawdata in buffer
- * windowSize: Number of rows required for model invoke
- * invokeInputCount: number of inputs to model
- * invokeOutputCount: number of inputs to model
- * postProcessResultCount: Final count of post processed result
+ * maxRowsDataBuffer: Maximum number of rows to store in AI data buffer
+ * rawDataCount: Count of parsed rawdata in one row of AI data buffer
+ * windowSize: Number of  data set rows required for performing pre processing operation
+ * invokeInputCount: Number of inputs to model
+ * invokeOutputCount: Number of outpts from model
+ * postProcessResultCount: Count of post processed result
  * inferenceResultCount: Number of primitive data values sent to application after inference of a modelset
- * MeanVals: List of mean values
- * STDVals: List of standard deviation values
+ * MeanVals: List of mean values used in normalization
+ * STDVals: List of standard deviation values used in normalization
  */
 struct AIModelAttribute {
 	uint32_t crc32;

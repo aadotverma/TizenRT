@@ -56,11 +56,11 @@ extern "C" {
 
 /**
  * @brief Initialize the csv data source reader.
- * Opens the csv file with name filename and stores pointer. Also it allocates memory to required buffers.
- * @param [IN] filename: Name of csv file to open.
- * @param [IN] dataType: Data type of column data values.
- * @param [IN] hasHeader: false(header is not present in csv) or true(header is present in csv)
- * @param [OUT] csvHandle: Void double pointer to a structure containing necessary fields of a csv.
+ * Opens the csv file with name filename and stores FILE pointer for opened CSV. Also it allocates memory to required buffers as per column count and its data type.
+ * @param [in] filename: Name of csv file to open.
+ * @param [in] dataType: Data type of column data values.
+ * @param [in] hasHeader: false(header is not present in csv) or true(header is present in csv)
+ * @param [out] csvHandle: Void double pointer to a structure containing necessary fields of a csv.
  *                         This contains data required for operation in CSV read. These are required by aifw_csv_reader and will be passed by application in further APIs
  * @return: AIFW_RESULT enum object.
  */
@@ -68,24 +68,24 @@ AIFW_RESULT csvInit(void **csvHandle, const char *filename, CSV_VALUE_DATA_TYPE_
 
 /**
  * @brief De-init the csv data source reader.
- * Closes the csv file and clears the buffer.
- * @param [IN] handle: Void pointer to csv handle structure.
+ * Closes the csv file and clears the allocated memory.
+ * @param [in] handle: Void pointer to csv handle structure.
  * @return: AIFW_RESULT enum object.
  */
 AIFW_RESULT csvDeinit(void **handle);
 
 /**
- * @brief Get CSV row data in sync manner.
- * @param [IN] handle: Void pointer to csv handle structure.
- * @param [OUT] buffer: Buffer to hold the  data values of csv.
+ * @brief Reads a CSV line, parses it and fills data values in buffer pointed by "buffer".
+ * @param [in] handle: Void pointer to csv handle structure.
+ * @param [out] buffer: Buffer to hold the data values of csv.
  * @return: AIFW_RESULT enum object.
  */
 AIFW_RESULT readCSVData(void *handle, void *buffer);
 
 /**
  * @brief Get total number of columns in CSV.
- * @param [IN] handle: Void pointer to csv handle structure.
- * @param [OUT] columnCountPtr: Pointer to columnCount variable.
+ * @param [in] handle: Void pointer to csv handle structure.
+ * @param [out] columnCountPtr: Pointer to a variable storing column count.
  * @return: AIFW_RESULT enum object.
  */
 AIFW_RESULT getColumnCount(void *handle, uint16_t *columnCountPtr);

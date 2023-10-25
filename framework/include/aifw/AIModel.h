@@ -33,95 +33,105 @@ class AIModel
 public:
 	/**
 	 * @brief Constructs the AIModel class instance.
+	 * It initializes data members of the class and constructs AI Engine object.
 	 */
 	AIModel(void);
 
 	/**
 	 * @brief (Parameterized) Constructs the AIModel class when data processor is provided.
-	 * @param [IN] dataProcessor: Pointer of AIProcessHandler to handle/process data before and after invoke.
+	 * It initializes data members of the class and constructs AI Engine object.
+	 * @param [in] dataProcessor: Pointer of AIProcessHandler to carry out raw data parsing, pre-/post-invoke processing of data.
 	 */
 	AIModel(std::shared_ptr<AIProcessHandler> dataProcessor);
 
 	/**
 	 * @brief AIModel class destructor.
+	 * It frees memory allocated to mModelAttribute's member variables, and buffers which were required to store data at different stages of inference. 
 	 */
 	~AIModel();
 
 	/**
-	 * @brief Load the TFLITE model from a file.
-	 * @param [IN] scriptPath: Path of TFLITE model file.
+	 * @brief It loads manifest information from file specified by scriptPath and fills it into mModelAttribute's member variables.
+	 * It allocates necessary buffers, loads TFLITE model from file, and initializes AI data buffer using information parsed from manifest file.
+	 * @param [in] scriptPath: Manifest file path.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	AIFW_RESULT loadModel(const char *scriptPath);
 
 	/**
-	 * @brief Load array based model.
-	 * @param [IN] modelAttribute: Model attributes.
+	 * @brief It fills model attributes information into mModelAttribute's member variables from input param modelAttribute.
+	 * It then allocates necessary buffers, loads array model, and initializes AI data buffer using model attributes information.
+	 * @param [in] modelAttribute: AIModelAttribute structure variable containing model attributes.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	AIFW_RESULT loadModel(const AIModelAttribute &modelAttribute);
 
 	/**
-	 * @brief Pushes incoming raw data for processing and invoke.
-	 * @param [IN] data: Incoming sensor data array.
-	 * @param [IN] count: Size of sensor data array.
+	 * @brief Pushes incoming raw data for parsing, pre-processing, invoke, and post-processing.
+	 * @param [in] data: Incoming sensor data to be passed for inference.
+	 * @param [in] count: Length of incoming sensor data array.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	AIFW_RESULT pushData(void *data, uint16_t count);
 
 	/**
-	 * @brief Get AIModelAttribute corresponding to the particular model.
-	 * @return: Returns AIModelAttribute value of model.
+	 * @brief Gives AIModelAttribute structure variable containing model attributes.
+	 * @return: Returns mModelAttribute.
 	 */
 	AIModelAttribute getModelAttribute(void);
 
 	/**
-	 * @brief Get result data of last inference cycle of model.
-	 * @param [OUT] data: Pointer of buffer to fill the inference result.
-	 * @param [IN] count: Number of values that buffer can hold.
+	 * @brief Fills latest post processed data(or invoke output data in case of no data processor) into buffer pointed by data.
+	 * @param [out] data: Pointer to buffer which will hold post processed(or invoke output) data.
+	 * @param [in] count: Number of values that buffer can hold.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	AIFW_RESULT getResultData(float *data, uint16_t count);
 
 	/**
-	 * @brief Get latest parsed raw data stored in AIDataBuffer.
-	 * @param [OUT] data: Pointer of buffer to fill latest parsed raw data.
-	 * @param [IN] count: Number of values that buffer can hold.
+	 * @brief Reads latest raw data from AIDataBuffer and fills into buffer pointed by data.
+	 * @param [out] data: Pointer to buffer which will hold raw data.
+	 * @param [in] count: Number of values that buffer can hold.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	AIFW_RESULT getRawData(float *data, uint16_t count);
 
 private:
 	/**
-	 * @brief Creates and initializes buffer corresponding to the model.
+	 * @brief It constructs AIDataBuffer object and initializes it.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	AIFW_RESULT createDataBuffer(void);
 
 	/**
-	 * @brief Process data and run the inference on processed data.
+	 * @brief It carries out invoke and pre-/post-invoke operations on data.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	AIFW_RESULT invoke(void);
 
 	/**
-	 * @brief Set model attribute using AIManifestParser class to parse file from given path.
-	 * @param [IN] path: Manifest file path.
+	 * @brief It loads manifest information from file specified by scriptPath and fills it into mModelAttribute's member variables.
+	 * @param [in] path: Manifest file path.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	AIFW_RESULT setModelAttributes(const char *path);
 
 	/**
-	 * @brief Clears memory allocated to members of AIModelAttribute structure.
+	 * @brief It frees memory allocated to mModelAttribute's member variables.
 	 */
 	void clearModelAttribute(void);
 
 	/**
-	 * @brief Allocates memory to buffers required to store data at different stages of inference.
+	 * @brief It allocates buffers required to store data at different stages of inference.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	AIFW_RESULT allocateMemory(void);
 
+	/**
+	 * @brief It fills model attributes information into mModelAttribute's member variables from input param modelAttribute.
+	 * @param [in] modelAttribute: AIModelAttribute structure variable containing model attributes.
+	 * @return: AIFW_RESULT enum object.
+	 */	
 	AIFW_RESULT fillModelAttribute(const AIModelAttribute &modelAttribute);
 
 	AIModelAttribute mModelAttribute;

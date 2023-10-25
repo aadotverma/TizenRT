@@ -40,21 +40,21 @@ public:
 
 	/**
 	 * @brief Load the TFLITE model from a file.
-	 * @param [IN] file: Path of TFLITE model file.
+	 * @param [in] file: Path of TFLITE model file.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	virtual AIFW_RESULT loadModel(const char *file) = 0;
 
 	/**
 	 * @brief Load array model.
-	 * @param [IN] model: Model in array form.
+	 * @param [in] model: Model in array form.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	virtual AIFW_RESULT loadModel(const unsigned char *model) = 0;
 
 	/**
 	 * @brief Run the inference with the given inputData.
-	 * @param [IN] inputData: Input data for model invoke.
+	 * @param [in] inputData: Input data for model invoke.
 	 * @return: Void * pointer to output result data.
 	 */
 	virtual void *invoke(void *inputData) = 0;

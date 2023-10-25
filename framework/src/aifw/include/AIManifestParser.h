@@ -40,14 +40,14 @@ public:
 
 	/**
 	 * @brief Load the manifest information from a file.
-	 * @param [IN] path: Manifest file path.
+	 * @param [in] path: Manifest file path.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	AIFW_RESULT loadManifestFile(const char *path);
 
 	/**
-	 * @brief Writes the read data into modelAttribute object's variable.
-	 * @param [OUT] modelAttribute: AIModelAttribute class object to save the manifest data extracted from manifest file.
+	 * @brief Fills data into modelAttribute object's member variables from manifest file.
+	 * @param [out] modelAttribute: AIModelAttribute class object to save the manifest data extracted from manifest file.
 	 * @return: AIFW_RESULT enum object.
 	 */
 	AIFW_RESULT readData(AIModelAttribute *modelAttribute);

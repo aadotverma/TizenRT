@@ -31,9 +31,13 @@ static uint16_t gResultValueCount;
 static float *gResultValues = NULL;
 static void *gResultHandle = NULL;
 
+/**
+ * @brief: Deinitilizes AI Helper module and stops the service for the modelset.
+ * Application calls this function if fetching raw data from data source fails.
+*/
 static void aifw_test_deinit(void)
 {
-	/* Deinitialize input CSV */
+	/* Deinitialize CSV data source for input raw data */
 	free(gSensorValues);
 	gSensorValues = NULL;
 	AIFW_RESULT retValue = csvDeinit(&gHandle);
@@ -41,7 +45,7 @@ static void aifw_test_deinit(void)
 		AIFW_LOGE("Input CSV deinit failed with error: %d", retValue);
 	}
 
-	/* Deinitialize result CSV */
+	/* Deinitialize CSV data source for expected inference result data */
 	free(gResultValues);
 	gResultValues = NULL;
 	retValue = csvDeinit(&gResultHandle);
@@ -56,9 +60,9 @@ static void aifw_test_deinit(void)
 	AIFW_LOGV("AI helper deinit done.");
 }
 
-/* Each Model will be inferenced for every predefined interval. AI F/W parse metadata of each model, and call this callback function 
-to get the raw data from source. Raw data is passed to AI FW for pre-process, inference, post-process operations. Final result is 
-received in sine_inferenceResultListener callback function
+/**
+ * @brief: AI Framework calls this function to collect the raw data and pass it for inference.
+ * This callback is called when timer expires. Time interval is set in 'inferenceInterval' field of json.
 */
 static void sine_collectRawDataListener(void)
 {
@@ -77,6 +81,13 @@ static void sine_collectRawDataListener(void)
 	aifw_test_deinit();
 }
 
+/**
+ * @brief: Application will receive inference result in this function.
+ * It is mandatory to be defined by each application.
+ * @param [in] res: Successful inference operation 'res' is set to AIFW_OK. Errors are set as per AIFW_RESULT enum values.
+ * @param [in] values: inference result values after ensembling 
+ * @param [in] count: count of values in inference result
+*/
 static void sine_inferenceResultListener(AIFW_RESULT res, void *values, uint16_t count)
 {
 	if (res != AIFW_OK) {
@@ -84,19 +95,18 @@ static void sine_inferenceResultListener(AIFW_RESULT res, void *values, uint16_t
 		return;
 	}
 	float *predictedResult = (float *)values;
-	/* Read expected result data from result CSV */
+	/* Read expected inference result from result CSV to compare it from predicted inference result */
 	memset(gResultValues, '\0', gResultValueCount * sizeof(float));
 	AIFW_RESULT result = readCSVData(gResultHandle, gResultValues);
 	if (result != AIFW_OK) {
-		AIFW_LOGE("reading result CSV data return error result : %d", result);
-		aifw_test_deinit();
+		AIFW_LOGE("reading result CSV data failed, inference result values cannot be verfied for this inference cycle. ret: %d", result);
 	}
 	AIFW_LOGI("Expected value: %f, AIFW prediction result : %f", gResultValues[1], predictedResult[0]);
 }
 
 int aifw_test_main(int argc, char *argv[])
 {
-	/* Initialize raw input data CSV */
+	/* Initialize CSV data source for input raw data */
 	AIFW_RESULT res = csvInit(&gHandle, "/mnt/AI/SineWave_packet.csv", FLOAT32, false);
 	if (res != AIFW_OK) {
 		AIFW_LOGE("FILE NOT FOUND || ERROR OPENING CSV. ret: %d", res);
@@ -114,7 +124,7 @@ int aifw_test_main(int argc, char *argv[])
 	}
 	AIFW_LOGV("Raw input data csv initialization OK");
 
-	/* Initialize result data CSV */
+	/* Initialize CSV data source for expected inference result data */
 	res = csvInit(&gResultHandle, "/mnt/AI/SineWave_resultPacket.csv", FLOAT32, false);
 	if (res != AIFW_OK) {
 		AIFW_LOGE("FILE NOT FOUND || ERROR OPENING CSV. ret: %d", res);

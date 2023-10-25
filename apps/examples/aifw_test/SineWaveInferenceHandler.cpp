@@ -28,7 +28,7 @@
 #endif
 
 extern "C" {
-uint32_t gSineWaveCode = 0x00000000; /* We don't use it for now */
+uint32_t gSineWaveCode = 0x00000000;
 }
 
 #ifdef CONFIG_PRODUCT_AI_MODEL_FILE_SUPPORT
@@ -83,7 +83,6 @@ AIFW_RESULT SineWaveInferenceHandler::prepare(void)
 	return AIFW_OK;
 }
 
-/* onInferenceFinished will be called when inference finished properly */
 AIFW_RESULT SineWaveInferenceHandler::onInferenceFinished(uint16_t idx, void *finalResult)
 {
 	AIFW_RESULT ret = AIFW_OK;

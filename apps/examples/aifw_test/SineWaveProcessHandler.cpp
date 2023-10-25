@@ -49,7 +49,7 @@ AIFW_RESULT SineWaveProcessHandler::parseData(void *data, uint16_t count, float 
 		AIFW_LOGE("parsed data buffer argument is NULL");
 		return AIFW_INVALID_ARG;
 	}
-	/* Here we can parse raw data values. Required raw data values can be selected or new data values can be created using different raw data values */
+	/* Here raw data values are parsed. Required raw data values can be selected or new data can be created using different raw data values. */
     for (uint16_t i = 0; i < modelAttribute->rawDataCount; i++) {
     	parsedData[i] = ((float *)data)[i];
     }
@@ -73,11 +73,10 @@ AIFW_RESULT SineWaveProcessHandler::preProcessData(std::shared_ptr<aifw::AIDataB
 			return AIFW_NO_MEM;
 		}
 	}
-	/* Read required number of rows from AI data buffer. At this time the latest row includes only parsed raw data and does not include invoke result. */
+	/* Read latest row from AI data buffer. At this time the latest row includes only parsed raw data and does not include invoke result. */
 	AIFW_RESULT res = buffer->readData(mRawData, 0, modelAttribute->rawDataCount, 0);
 	if (res != AIFW_OK) {
 		AIFW_LOGE("Reading Data from the buffer failed. ret: %d", res);
-		/* Check if deleting mRawData is necessary */
 		return res;
 	}
 	/* Pre processing can be done at this point e.g. data can be normalized using mean and standard deviation values specific to model. Fnally pre-processed values, ready for inference is to be copied in invokeInput buffer */
@@ -106,10 +105,9 @@ AIFW_RESULT SineWaveProcessHandler::postProcessData(std::shared_ptr<aifw::AIData
 	AIFW_RESULT res = buffer->readData(mInvokeOutput, modelAttribute->rawDataCount, (modelAttribute->rawDataCount + modelAttribute->invokeOutputCount), 0);
 	if (res != AIFW_OK) {
 		AIFW_LOGE("Reading Data from the buffer failed.");
-		/* Check if deleting mInvokeOutput is necassary */
 		return res;
 	}
-	/* Post processing of result can be done at this point. Post Process result save in resultData */
+	/* Post processing of result can be done at this point. Finally copy postprocesses values in resultData buffer */
 	memcpy(resultData, mInvokeOutput, modelAttribute->postProcessResultCount * sizeof(float));
 	return AIFW_INFERENCE_FINISHED;
 }

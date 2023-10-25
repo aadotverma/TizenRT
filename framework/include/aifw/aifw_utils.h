@@ -28,29 +28,29 @@
 #include "aifw/aifw.h"
 
 /**
- * @brief: Utility function to normaiza the data
- * @param [IN]: dataValues: Data to be normalized
- * @param [IN]: meanVals: Mean values to use in normalization
- * @param [IN]: stdValues: Standard deviation values to use in normalization
- * @param [IN]: countOfValues: number of values. Parameter 1~3 all have same count of values.
+ * @brief: Utility function to normalize the data
+ * @param [in,out] dataValues: Data to be normalized
+ * @param [in] meanVals: Mean values to use in normalization
+ * @param [in] stdValues: Standard deviation values to use in normalization
+ * @param [in] countOfValues: number of values. Parameter 1~3 all have same count of values.
  */
 void normalizeData(float dataValues[], float meanVals[], float stdValues[], uint16_t countOfValues);
 
 /**
  * @brief: Utility function to get mse value from the predicted value
- * @param [IN]: realValues : Actual values
- * @param [IN]: predValues : Predicted values
- * @param [IN]: count : number of values
- * @param [IN]: result : Variable to be returned 
+ * @param [in] realValues: Actual values
+ * @param [in] predValues: Predicted values
+ * @param [in] count: number of values
+ * @param [out] result: Variable to be returned 
  */
 AIFW_RESULT getMSE(float *realValues, float *predValues, int count, float *result);
 
 /**
  * @brief: Utility function to get rmse value from the predicted value
- * @param [IN]: realValues : Actual values
- * @param [IN]: predValues : Predicted values
- * @param [IN]: count : number of values
- * @param [IN]: result : Variable to be returned 
+ * @param [in] realValues: Actual values
+ * @param [in] predValues: Predicted values
+ * @param [in] count: number of values
+ * @param [out] result: Variable to be returned 
  */
 AIFW_RESULT getRMSE(float *realValues, float *predValues, int count, float *result);
 

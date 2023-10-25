@@ -31,48 +31,48 @@ extern "C" {
 #endif
 
 /**
- * @brief It creates a dynamic list of modelSets.
- * @param [IN] maxModelSetCount: number of modelSets needed in the list.
+ * @brief This function initializes AI Helper module. It allocates memory and sets internal data structures for 
+ *        AI helper to work properly. This function is pre-requiste before any application calls ai_helper_load_model API.
+ * @param [in] maxModelSetCount: Maximum number of model sets to be loaded by all applications.
  * @return: AIFW_RESULT enum object.
  */
 AIFW_RESULT ai_helper_init(uint16_t maxModelSetCount);
 
 /**
- * @brief It resets factory creator pointer.
+ * @brief This function deinitializes AI Helper & further no API of AI Helper should be called.
  * @return: AIFW_RESULT enum object.
  */
 AIFW_RESULT ai_helper_deinit(void);
 
 /**
- * @brief Starts the modelService for the corresponding modelSet.
- * @param [IN] modelCode: modelCode for the modelSet.
+ * @brief Starts service for the corresponding modelSet. After this application will start receiving callback in Collect Raw Data listener.
+ * @param [in] modelCode: modelCode for which service is to be started.
  * @return: AIFW_RESULT enum object.
  */
 AIFW_RESULT ai_helper_start(uint32_t modelCode);
 
 /**
- * @brief Stops the modelService for the corresponding modelSet.
- * @param [IN] modelCode: modelCode for the modelSet.
+ * @brief Stops the modelService for the corresponding modelSet. Appplication will stop receiving callback in Collect Raw Data listener.
+ * @param [in] modelCode: modelCode for which service is to be stopped.
  * @return: AIFW_RESULT enum object.
  */
 AIFW_RESULT ai_helper_stop(uint32_t modelCode);
 
 /**
- * @brief Creates AIInferenceHandler and AIModelService class instances for the modelSet.
- * It then calls the prepare API of modelservice which creates instances of AIModel and Process Handler(if required).
- * Finally models are loaded and attached to AIInferenceHandler.
- * @param [IN] modelCode: modelCode for the modelSet.
- * @param [IN] resultCallback: Callback function to call when inference cycle of model set is completed.
- * @param [IN] collectRawDataCallback: Callback function to call when timer expires to collect raw data.
+ * @brief This API loads all AI models in model set corresponding to model code. A service is created to perform operation on loaded model set.
+ * It instantiates application components such as inference and process handlers. The loaded models are mapped with application inference handler.
+ * @param [in] modelCode: modelCode for the modelSet.
+ * @param [in] resultCallback: Function to receive inference result from AI Framework.
+ * @param [in] collectRawDataCallback: This function is called by service for data collection and inference operation.
  * @return: AIFW_RESULT enum object.
  */
 AIFW_RESULT ai_helper_load_model(uint32_t modelCode, InferenceResultListener resultCallback, CollectRawDataListener collectRawDataCallback);
 
 /**
- * @brief Pushes the incoming raw data from app to AIModelService associated to modelSet.
- * @param [IN] modelCode: modelCode for the modelSet.
- * @param [IN] data: Incoming sensor data from app.
- * @param [IN] len: Length of incoming sensor data array.
+ * @brief Helper function to push raw data to model service for pre-processing, inference and post processing.
+ * @param [in] modelCode: modelCode for the modelSet.
+ * @param [in] data: Incoming sensor data to be passed for processing.
+ * @param [in] len: Length of incoming sensor data array.
  * @return: AIFW_RESULT enum object.
  */
 AIFW_RESULT ai_helper_push_data(uint32_t modelCode, void *data, uint16_t len);

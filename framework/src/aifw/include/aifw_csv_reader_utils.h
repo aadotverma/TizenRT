@@ -47,32 +47,34 @@ extern "C" {
 
 /**
  * @brief Opens filename.csv.
- * @param [IN] filename: Name of csv file to open.
+ * @param [in] filename: Name of csv file to open.
  * @return: Returns FILE pointer for opened csv.
  */
 FILE *csvOpen(const char *filename);
 
 /**
  * @brief Closes the FILE stream corresponding to FILE* fp.
- * @param [IN] fp: FILE pointer of the stream to be closed.
+ * @param [in] fp: FILE pointer of the stream to be closed.
  * @return: AIFW_RESULT enum object.
  */
 AIFW_RESULT csvClose(FILE *fp);
 
 /**
- * @brief Get CSV row data.
- * @param [IN] fp: FILE pointer of the stream.
- * @param [OUT] data: char array to store line data
- * @param [IN] size: size of char array
+ * @brief Reads a line from the FILE stream corresponding to FILE* fp and stores it into the buffer pointed to by data.
+ * It stops when either (size-1) characters are read, the newline character is read, or EOF is reached, whichever comes first.
+ * @param [in] fp: FILE pointer of the stream.
+ * @param [out] data: char array to store line data
+ * @param [in] size: size of char array
  * @return: AIFW_RESULT enum object.
  */
 AIFW_RESULT getCSVLine(FILE *fp, char *data, uint16_t size);
 
 /**
- * @brief Get CSV file till next ',' or '\0' or '\n' or '\r'. Convert value as per parameter 5 and fill in parameter 3
- * @param [IN] fp: FILE pointer of the stream.
- * @param [OUT] columnBuffer: char array to store a csv line column.
- * @param [OUT] data: value read from file
+ * @brief Gets the next character from the FILE stream corresponding to FILE* fp till next ',' or '\0' or '\n' or '\r' or EOF and fills them into the buffer pointed to by columnBuffer.
+ * Parse stream of characters stored in columnBuffer as per parameter 4 and fill in parameter 3
+ * @param [in] fp: FILE pointer of the stream.
+ * @param [out] columnBuffer: char array to store a csv line column.
+ * @param [out] data: buffer to store parsed csv line column value.
  * @return: AIFW_RESULT enum object.
  */
 AIFW_RESULT getValue(FILE *fp, char *columnBuffer, void *data, CSV_VALUE_DATA_TYPE_E datatype);

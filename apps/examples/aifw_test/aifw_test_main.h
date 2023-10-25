@@ -18,7 +18,7 @@
 
 /**
  * @file aifw_test_main.h
- * @brief AI test application using AI Framework
+ * @brief Sample application to show case usage of AI Framework basic functionality such as data collection, pre-processing, inference, post-processing, and finally ensembling.
  */
 
 #pragma once
@@ -27,6 +27,11 @@
 extern "C" {
 #endif
 
+/**
+ * @brief: It initializes AI Helper module. Model set is then loaded with its unique model code.
+ * A service is started for the model set. After this application will start receiving callback data collection callback.
+ * @return: -1 indicated error. 0 indicates success
+*/
 int aifw_test_main(int argc, char *argv[]);
 
 #ifdef __cplusplus

@@ -42,34 +42,36 @@ public:
 	}
 
 	/**
-	 * @brief Parses AI data from entire of raw data and writes it to the parsedData buffer.
-	 * Data can be selected or new data can be created using different raw data values.
-	 * @param [IN] data: Input raw data. It is entire of sensor data set, developer should parse data from it.
-	 * @param [IN] count: Length of input raw data.
-	 * @param [OUT] parsedData: Pointer of buffer to store postprocessed data. AIFW should write parsed data in AIDataBuffer.
-	 * @param [IN] modelAttribute: Contains AIModelAttribute value of current AI Model.
+	 * @brief Raw data values coming from data source present in param data are parsed in this function and filled in param parsedData.
+	 * Required raw data values can be selected or new data can be created using different raw data values.
+	 * @param [in] data: Input raw data. It is entire of sensor data set, developer should parse data from it.
+	 * @param [in] count: Length of input raw data.
+	 * @param [out] parsedData: Pointer of buffer to store parsed data. AIFW should write parsed data in AIDataBuffer which can be used later by other APIs of handler.
+	 * @param [in] modelAttribute: Contains AIModelAttribute value of current AI Model.
 	 * @return: AIFW_RESULT enum object. On success, AIFW_OK is returned.
+	 * 			To skip inference, AIFW_INFERENCE_PROCEEDING is returned.
 	 * 			On failure, a negative value is returned.
 	 */
 	virtual AIFW_RESULT parseData(void *data, uint16_t count, float *parsedData, AIModelAttribute *modelAttribute) = 0;
 
 	/**
-	 * @brief Performs processing on data before invoke. Processed data will not be updated on AIDataBuffer.
-	 * @param [IN] buffer: Pointer of AIDataBuffer. It contains parsed raw data.
-	 * @param [OUT] invokeInput: Pointer of buffer to be invoked. Developer should fill with processed data.
-	 * @param [IN] modelAttribute: Contains AIModelAttribute value of current AI Model.
+	 * @brief Performs preprocessing on data stored in AIDataBuffer before it is sent for invoke. Preprocessed data will not be updated on AIDataBuffer.
+	 * @param [in] buffer: Pointer of AIDataBuffer. One row of AIDataBuffer includes parsed raw data and model invoke output. However, latest row only includes parsed raw data at this point of time.
+	 * @param [out] invokeInput: Pointer of buffer to store preprocessed data. This buffer is later sent for invoke by AIFW.
+	 * @param [in] modelAttribute: Contains AIModelAttribute value of current AI Model.
 	 * @return: AIFW_RESULT enum object. On success, AIFW_OK is returned.
 	 * 			On failure, a negative value is returned.
 	 */
 	virtual AIFW_RESULT preProcessData(std::shared_ptr<AIDataBuffer> buffer, float *invokeInput, AIModelAttribute *modelAttribute) = 0;
 
 	/**
-	 * @brief Performs processing on data after invoke. Processed data will not be updated on AIDataBuffer.
-	 * @param [IN] buffer: Pointer of AIDataBuffer. It contains invoked output.
-	 * @param [OUT] resultData: Pointer of buffer to store postprocessed data.
-	 * @param [IN] modelAttribute: Contains AIModelAttribute value of current AI Model.
+	 * @brief Performs postprocessing on data stored in AIDataBuffer after invoke. Postprocessed data will not be updated on AIDataBuffer.
+	 * @param [in] buffer: Pointer of AIDataBuffer. At this point of time, latest row includes parsed raw data as well as invoke output.
+	 * @param [out] resultData: Pointer of buffer to store postprocessed data. This will later be used in ensembling operation by inference handler.
+	 * @param [in] modelAttribute: Contains AIModelAttribute value of current AI Model.
 	 * @return: AIFW_RESULT enum object. On success, AIFW_OK is returned.
 	 * 			On completion of modelSet inference cycle, AIFW_INFERENCE_FINISHED is returned.
+	 * 			To skip ensembling, AIFW_INFERENCE_PROCEEDING is returned.
 	 * 			On failure, a negative value is returned.
 	 */
 	virtual AIFW_RESULT postProcessData(std::shared_ptr<AIDataBuffer> buffer, float *resultData, AIModelAttribute *modelAttribute) = 0;
