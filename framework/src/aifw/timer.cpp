@@ -58,8 +58,7 @@ timer_result timer_start(timer *timer)
 		return TIMER_INVALID_ARGS;
 	}
 	AIFW_LOGV("Start Timer");
-	pthread_t timerThread;
-	int result = pthread_create(&timerThread, NULL, aifw_timerthread_cb, (void *)timer);
+	int result = pthread_create(&(timer->timerThread), NULL, aifw_timerthread_cb, (void *)timer);
 	if (result != 0) {
 		AIFW_LOGE("ERROR Failed to start aifw_timerthread_cb");
 		return TIMER_FAIL;

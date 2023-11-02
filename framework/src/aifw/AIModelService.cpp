@@ -19,6 +19,7 @@
 #include "aifw/timer.h"
 #include <stdlib.h>
 #include <memory>
+#include <pthread.h>
 #include "aifw/aifw.h"
 #include "aifw/aifw_log.h"
 #include "aifw/AIModelService.h"
@@ -60,17 +61,30 @@ static void *destroyTimer(void *arg)
 	free(ptrToTimer);
 	ptrToTimer = NULL;
 	AIFW_LOGV("Timer destroyed");
+	return NULL;
 }
 
 AIFW_RESULT AIModelService::freeTimer(void)
 {
-	pthread_t timerThread;
-	int result = pthread_create(&timerThread, NULL, destroyTimer, (void *)mTimer);
-	if (result != 0) {
-		AIFW_LOGE("ERROR Failed to start destroyTimer thread");
-		return AIFW_ERROR;
+	if (pthread_equal(pthread_self(), mTimer->timerThread)) {
+		pthread_t thread;
+		int result = pthread_create(&thread, NULL, destroyTimer, (void *)mTimer);
+		if (result != 0) {
+			AIFW_LOGE("ERROR Failed to start destroyTimer thread");
+			return AIFW_ERROR;
+		}
+		AIFW_LOGV("Started destroyTimer thread");
+	} else {
+		if (mTimer) {
+			timer_result res = timer_destroy(mTimer);
+			if (res != TIMER_SUCCESS) {
+				AIFW_LOGE("Destroying timer failed. ret: %d", res);
+				return AIFW_ERROR;
+			}
+			free(mTimer);
+			mTimer = NULL;
+		}
 	}
-	AIFW_LOGV("Started destroyTimer thread");
 	return AIFW_OK;
 }
 

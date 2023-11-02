@@ -37,6 +37,7 @@ struct timer{
     int signalReceivedCounter;
     sem_t semaphore;
     sem_t exitSemaphore;
+    pthread_t timerThread;
 };
 
 /**
