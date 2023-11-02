@@ -36,6 +36,7 @@ struct timer{
     bool enable;
     int signalReceivedCounter;
     sem_t semaphore;
+    sem_t exitSemaphore;
 };
 
 /**

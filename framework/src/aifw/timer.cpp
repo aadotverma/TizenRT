@@ -225,6 +225,7 @@ errorout:
 	act.sa_handler = SIG_DFL;
 	status = sigaction(AIFW_TIMER_SIGNAL, &act, NULL);
 	AIFW_LOGV("aifw_timerthread_cb: done");
+	sem_post(&(((timer *)parameter)->exitSemaphore));
 	return NULL;
 }
 

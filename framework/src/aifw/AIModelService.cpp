@@ -37,17 +37,40 @@ AIModelService::~AIModelService()
 	AIFW_LOGV("model service object destoyed");
 }
 
+static void *destroyTimer(void *arg)
+{
+	timer *ptrToTimer = (timer *)arg;
+	if (!ptrToTimer) {
+		AIFW_LOGV("Pointer to timer is NULL. No need to destroy.");
+		return NULL;
+	}
+	AIFW_LOGV("destroyTimer: Initializing exit semaphore to 0");
+	sem_init(&(ptrToTimer->exitSemaphore), 0, 0);
+	int status = sem_wait(&(ptrToTimer->exitSemaphore));
+	if (status != 0) {
+		int error = errno;
+		AIFW_LOGE("destroyTimer: ERROR sem_wait failed, errno=%d", error);
+		return NULL;
+	}
+	timer_result res = timer_destroy(ptrToTimer);
+	if (res != TIMER_SUCCESS) {
+		AIFW_LOGE("Destroying timer failed. ret: %d", res);
+		return NULL;
+	}
+	free(ptrToTimer);
+	ptrToTimer = NULL;
+	AIFW_LOGV("Timer destroyed");
+}
+
 AIFW_RESULT AIModelService::freeTimer(void)
 {
-	if (mTimer) {
-		timer_result res = timer_destroy(mTimer);
-		if (res != TIMER_SUCCESS) {
-			AIFW_LOGE("Destroying timer failed. ret: %d", res);
-			return AIFW_ERROR;
-		}
-		free(mTimer);
-		mTimer = NULL;
+	pthread_t timerThread;
+	int result = pthread_create(&timerThread, NULL, destroyTimer, (void *)mTimer);
+	if (result != 0) {
+		AIFW_LOGE("ERROR Failed to start destroyTimer thread");
+		return AIFW_ERROR;
 	}
+	AIFW_LOGV("Started destroyTimer thread");
 	return AIFW_OK;
 }
 
