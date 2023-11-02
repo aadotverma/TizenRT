@@ -32,5 +32,6 @@ public:
 
 private:
 	std::shared_ptr<aifw::AIModel> mSWModel;
+	float *mPostProcessedData;
 };
 

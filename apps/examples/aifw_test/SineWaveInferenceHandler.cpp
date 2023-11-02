@@ -45,12 +45,16 @@ static uint16_t gModelCount = 1;
 #endif
 
 SineWaveInferenceHandler::SineWaveInferenceHandler(InferenceResultListener listener) :
-	AIInferenceHandler(gModelCount, listener)
+	AIInferenceHandler(gModelCount, listener), mSWModel(NULL), mPostProcessedData(NULL)
 {
 }
 
 SineWaveInferenceHandler::~SineWaveInferenceHandler()
 {
+    if (mPostProcessedData) {
+        delete[] mPostProcessedData;
+        mPostProcessedData = NULL;
+    }
 }
 
 AIFW_RESULT SineWaveInferenceHandler::prepare(void)
@@ -88,25 +92,23 @@ AIFW_RESULT SineWaveInferenceHandler::onInferenceFinished(uint16_t idx, void *fi
 	AIFW_RESULT ret = AIFW_OK;
 	float *result = (float *)finalResult;
 	uint16_t postProcessResultCount = mSWModel->getModelAttribute().postProcessResultCount;
-	float *postProcessedData = new float[postProcessResultCount];
-	if (!postProcessedData) {
-		AIFW_LOGE("post process data buffer memory allocation failed.");
-		return AIFW_NO_MEM;
-	}
-	ret = mSWModel->getResultData(postProcessedData, postProcessResultCount);
+    if (!mPostProcessedData) {
+        mPostProcessedData = new float[postProcessResultCount];
+        if (!mPostProcessedData) {
+            AIFW_LOGE("post process data buffer memory allocation failed.");
+            return AIFW_NO_MEM;
+        }
+    }
+	ret = mSWModel->getResultData(mPostProcessedData, postProcessResultCount);
 	if (ret != AIFW_OK) {
 		AIFW_LOGE("get result data of model failed");
-		delete[] postProcessedData;
-		postProcessedData = NULL;
 		return ret;
 	}
-	result[0] = postProcessedData[0];
+	result[0] = mPostProcessedData[0];
 	if (result[0] < -1 || result[0] > 1) {
 		AIFW_LOGE("Error !! invoke result is out of bounds : %f", result[0]);
 		return AIFW_INVOKE_OUT_OF_BOUNDS;
 	}
-	delete[] postProcessedData;
-	postProcessedData = NULL;
 	return AIFW_OK;
 }
 
