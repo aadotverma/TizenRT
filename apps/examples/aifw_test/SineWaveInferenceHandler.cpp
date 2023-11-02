@@ -16,7 +16,7 @@
  *
  ****************************************************************************/
 
-#include "aifw_test_config.h"
+#include "tinyara/config.h"
 #include "aifw/aifw.h"
 #include "aifw/aifw_log.h"
 #include "aifw/AIModel.h"
