@@ -141,7 +141,7 @@ AIFW_RESULT csvInit(void **csvHandle, const char *filename, CSV_VALUE_DATA_TYPE_
 	handle->columnCount = calculateColumnCount(handle->fileHandle);
 	if (handle->columnCount == 0) {
 		AIFW_LOGE("Total column count in csv is 0.");
-		clearMemory(csvHandle);
+		csvDeinit(csvHandle);
 		return AIFW_ERROR;
 	}
 	handle->columnDataType = dataType;
@@ -150,19 +150,19 @@ AIFW_RESULT csvInit(void **csvHandle, const char *filename, CSV_VALUE_DATA_TYPE_
 	AIFW_LOGV("Total columns count: %d", handle->columnCount);
 	if (!hasHeader && fseek(handle->fileHandle, 0, SEEK_SET)) {
 		AIFW_LOGE("Seeking file pointer to start of file failed.");
-		clearMemory(csvHandle);
+		csvDeinit(csvHandle);
 		return AIFW_ERROR;
 	}
 	handle->columnBuffer = (char *)malloc(handle->maxCharPerColumn * sizeof(char));
 	if (!handle->columnBuffer) {
 		AIFW_LOGE("Memory allocation failed for column buffer");
-		clearMemory(csvHandle);
+		csvDeinit(csvHandle);
 		return AIFW_NO_MEM;
 	}
 	handle->lineBuffer = (char *)malloc(handle->columnCount * handle->maxCharPerColumn * sizeof(char));
 	if (!handle->lineBuffer) {
 		AIFW_LOGE("Memory allocation failed for line buffer");
-		clearMemory(csvHandle);
+		csvDeinit(csvHandle);
 		return AIFW_NO_MEM;
 	}
 	return AIFW_OK;

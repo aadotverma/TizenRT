@@ -158,8 +158,10 @@ AIFW_RESULT AIDataBuffer::createList(uint16_t count, uint16_t size)
 		return AIFW_OK;
 	}
 	mEnd->mNext = firstNode;
-	firstNode->mPrev = mEnd;
-	mEnd = lastNode;
+	if (firstNode) {
+		firstNode->mPrev = mEnd;
+		mEnd = lastNode;
+	}
 	return AIFW_OK;
 }
 

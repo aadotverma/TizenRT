@@ -30,7 +30,7 @@ namespace aifw {
 AIModel::AIModel(void) :
 	mBuffer(nullptr), mInvokeInput(NULL), mInvokeOutput(NULL), mParsedData(NULL), mPostProcessedData(NULL), mDataProcessor(nullptr)
 {
-
+	memset(&mModelAttribute, '\0', sizeof(AIModelAttribute));
 	mAIEngine = std::make_shared<TFLM>();
 	if (!mAIEngine) {
 		AIFW_LOGE("Model Engine memory allocation failed");
@@ -40,6 +40,7 @@ AIModel::AIModel(void) :
 AIModel::AIModel(std::shared_ptr<AIProcessHandler> dataProcessor) :
 	mBuffer(nullptr), mInvokeInput(NULL), mInvokeOutput(NULL), mParsedData(NULL), mPostProcessedData(NULL), mDataProcessor(dataProcessor)
 {
+	memset(&mModelAttribute, '\0', sizeof(AIModelAttribute));
 	mAIEngine = std::make_shared<TFLM>();
 	if (!mAIEngine) {
 		AIFW_LOGE("Model Engine memory allocation failed");
@@ -165,11 +166,13 @@ AIFW_RESULT AIModel::fillModelAttribute(const AIModelAttribute &modelAttribute)
 		AIFW_LOGE("AI model version is null");
 		return AIFW_INVALID_ATTRIBUTE;
 	}
-	mModelAttribute.version = strdup(modelAttribute.version);
+	uint16_t len = strlen(modelAttribute.version);
+	mModelAttribute.version = new char[len + 1];
 	if (!mModelAttribute.version) {
-		AIFW_LOGE("Failed to duplicate AI model version");
+		AIFW_LOGE("Failed to allocate memory for model attribute version");
 		return AIFW_NO_MEM;
 	}
+	strncpy((char *)mModelAttribute.version, modelAttribute.version, len + 1);
 
 	if (modelAttribute.features != NULL && modelAttribute.featuresCount != 0) {
 		mModelAttribute.features = new uint16_t[modelAttribute.featuresCount];

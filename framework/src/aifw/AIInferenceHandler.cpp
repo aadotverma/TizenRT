@@ -58,7 +58,7 @@ AIFW_RESULT AIInferenceHandler::pushData(void *data, uint16_t count)
 
 	/* First create result buffer */
 	uint16_t inferenceResultCount = mModels.get()[0]->getModelAttribute().inferenceResultCount;
-	void *finalResult = new char[inferenceResultCount * sizeof(float)];
+	char *finalResult = new char[inferenceResultCount * sizeof(float)];
 	if (!finalResult) {
 		AIFW_LOGE("Memory Allocation failed for final result buffer");
 		return AIFW_NO_MEM;
@@ -92,14 +92,14 @@ AIFW_RESULT AIInferenceHandler::pushData(void *data, uint16_t count)
 
 	/* Proper result of inference should be handled by onInferenceFinished to get final result */
 	if ((res == AIFW_OK) || (res == AIFW_INFERENCE_FINISHED)) {
-		res = onInferenceFinished(idx, finalResult);
+		res = onInferenceFinished(idx, (void *)finalResult);
 		if (res != AIFW_OK) {
 			AIFW_LOGE("ensemble operation error: %d", res);
 		}
 	}
 
 	/* Regardless type result, result will be shared through inferenceResultListener */
-	mInferenceResultListener(res, finalResult, inferenceResultCount);
+	mInferenceResultListener(res, (void *)finalResult, inferenceResultCount);
 	if (finalResult) {
 		delete[] finalResult;
 		finalResult = NULL;
