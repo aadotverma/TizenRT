@@ -195,16 +195,20 @@ static int ai_helper_push_data(uint32_t modelCode, void *data, uint16_t len)
 static void aifw_test_deinit(void)
 {
 	/* Deinitialize CSV data source for input raw data */
-	free(gSensorValues);
-	gSensorValues = NULL;
+	if (gSensorValues) {
+		free(gSensorValues);
+		gSensorValues = NULL;
+	}
 	AIFW_RESULT retValue = csvDeinit(&gHandle);
 	if (retValue != AIFW_OK) {
 		AIFW_LOGE("Input CSV deinit failed with error: %d", retValue);
 	}
 
 	/* Deinitialize CSV data source for expected inference result data */
-	free(gResultValues);
-	gResultValues = NULL;
+	if (gResultValues) {
+		free(gResultValues);
+		gResultValues = NULL;
+	}
 	retValue = csvDeinit(&gResultHandle);
 	if (retValue != AIFW_OK) {
 		AIFW_LOGE("Result CSV deinit failed with error: %d", retValue);
@@ -272,12 +276,12 @@ int aifw_test_main(int argc, char *argv[])
 	res = getColumnCount(gHandle, &gSensorValueCount);
 	if (res != AIFW_OK) {
 		AIFW_LOGE("Fetching sensor value count failed. ret: %d\n", res);
-		return -1;
+		goto cleanup;
 	}
 	gSensorValues = (float *)malloc(gSensorValueCount * sizeof(float));
 	if (!gSensorValues) {
 		AIFW_LOGE("Memory allocation failed for sensor values buffer");
-		return -1;
+		goto cleanup;
 	}
 	AIFW_LOGV("Raw input data csv initialization OK");
 
@@ -285,29 +289,36 @@ int aifw_test_main(int argc, char *argv[])
 	res = csvInit(&gResultHandle, "/mnt/AI/SineWave_resultPacket.csv", FLOAT32, false);
 	if (res != AIFW_OK) {
 		AIFW_LOGE("FILE NOT FOUND || ERROR OPENING CSV. ret: %d", res);
-		return -1;
+		goto cleanup;
 	}
 	res = getColumnCount(gResultHandle, &gResultValueCount);
 	if (res != AIFW_OK) {
 		AIFW_LOGE("Fetching result value count failed. ret: %d\n", res);
-		return -1;
+		goto cleanup;
 	}
 	gResultValues = (float *)malloc(gResultValueCount * sizeof(float));
 	if (!gResultValues) {
 		AIFW_LOGE("Memory allocation failed for result values buffer");
-		return -1;
+		goto cleanup;
 	}
 	AIFW_LOGV("Result data csv initialization OK");
 
 	if (ai_helper_init(1) != 0) {
 		AIFW_LOGE("AI helper init failed");
-		return -1;
+		goto cleanup;
 	}
 	if (ai_helper_load_model(gSineWaveCode, sine_inferenceResultListener, sine_collectRawDataListener) != 0) {
 		AIFW_LOGE("Load model failed");
-		return -1;
+		goto cleanup;
 	}
-	ai_helper_start(gSineWaveCode);
+	if (ai_helper_start(gSineWaveCode) != 0) {
+		AIFW_LOGE("AI helper start failed");
+		goto cleanup;
+	}
 	return 0;
+
+cleanup:
+	aifw_test_deinit();
+	return -1;
 }
 
