@@ -24,7 +24,7 @@
 #pragma once
 
 #include <memory>
-#include <aifw/timer.h>
+#include <aifw/aifw_timer.h>
 #include "aifw/aifw.h"
 #include "aifw/AIInferenceHandler.h"
 
@@ -111,7 +111,7 @@ private:
 	bool mServiceRunning;
 	std::shared_ptr<AIInferenceHandler> mInferenceHandler;
 	CollectRawDataListener mCollectRawDataCallback;
-	timer *mTimer;
+	aifw_timer *mTimer;
 };
 
 } /* namespace aifw */

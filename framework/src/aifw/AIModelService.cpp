@@ -16,7 +16,7 @@
  *
  ****************************************************************************/
 
-#include "aifw/timer.h"
+#include "aifw/aifw_timer.h"
 #include <stdlib.h>
 #include <memory>
 #include <pthread.h>
@@ -40,7 +40,7 @@ AIModelService::~AIModelService()
 
 static void *destroyTimer(void *arg)
 {
-	timer *ptrToTimer = (timer *)arg;
+	aifw_timer *ptrToTimer = (aifw_timer *)arg;
 	if (!ptrToTimer) {
 		AIFW_LOGV("Pointer to timer is NULL. No need to destroy.");
 		return NULL;
@@ -53,8 +53,8 @@ static void *destroyTimer(void *arg)
 		AIFW_LOGE("destroyTimer: ERROR sem_wait failed, errno=%d", error);
 		return NULL;
 	}
-	timer_result res = timer_destroy(ptrToTimer);
-	if (res != TIMER_SUCCESS) {
+	aifw_timer_result res = aifw_timer_destroy(ptrToTimer);
+	if (res != AIFW_TIMER_SUCCESS) {
 		AIFW_LOGE("Destroying timer failed. ret: %d", res);
 		return NULL;
 	}
@@ -76,8 +76,8 @@ AIFW_RESULT AIModelService::freeTimer(void)
 		AIFW_LOGV("Started destroyTimer thread");
 	} else {
 		if (mTimer) {
-			timer_result res = timer_destroy(mTimer);
-			if (res != TIMER_SUCCESS) {
+			aifw_timer_result res = aifw_timer_destroy(mTimer);
+			if (res != AIFW_TIMER_SUCCESS) {
 				AIFW_LOGE("Destroying timer failed. ret: %d", res);
 				return AIFW_ERROR;
 			}
@@ -118,9 +118,9 @@ AIFW_RESULT AIModelService::stop(void)
 		mServiceRunning = false;
 		return AIFW_OK;
 	}
-	timer_result dret = TIMER_SUCCESS;
-	dret = timer_stop(mTimer);
-	if (dret != TIMER_SUCCESS) {
+	aifw_timer_result dret = AIFW_TIMER_SUCCESS;
+	dret = aifw_timer_stop(mTimer);
+	if (dret != AIFW_TIMER_SUCCESS) {
 		AIFW_LOGE("Timer stop failed, error: %d", dret);
 		return AIFW_ERROR;
 	}
@@ -131,7 +131,7 @@ AIFW_RESULT AIModelService::stop(void)
 /* ToDo: Interval needs to be updated in json file so that updated value is used after device restarts */
 AIFW_RESULT AIModelService::setInterval(uint16_t interval)
 {
-	timer_result ret;
+	aifw_timer_result ret;
 	if (!mTimer) {
 		AIFW_LOGE("Timer not created yet, Ignoring request");
 		return AIFW_ERROR;
@@ -140,8 +140,8 @@ AIFW_RESULT AIModelService::setInterval(uint16_t interval)
 		AIFW_LOGE("Invalid interval=%d Ignoring request", interval);
 		return AIFW_ERROR;
 	}
-	ret = timer_change_interval(mTimer, (unsigned int)interval);
-	if (ret != TIMER_SUCCESS) {
+	ret = aifw_timer_change_interval(mTimer, (unsigned int)interval);
+	if (ret != AIFW_TIMER_SUCCESS) {
 		AIFW_LOGE("timer interval change failed=%d", ret);
 		return AIFW_ERROR;
 	}
@@ -169,15 +169,15 @@ AIFW_RESULT AIModelService::prepare(void)
 	mInterval = mInferenceHandler->getModelServiceInterval();
 	AIFW_LOGV("Timer interval %d", mInterval);
 	if (mInterval > 0) {
-		mTimer = (timer *)calloc(1, sizeof(timer));
+		mTimer = (aifw_timer *)calloc(1, sizeof(aifw_timer));
 		if (mTimer == NULL) {
 			AIFW_LOGE("Memory allocation failed for timer");
 			return AIFW_NO_MEM;
 		}
-		timer_result ret;
+		aifw_timer_result ret;
 		/* create timer */
-		ret = create_timer(mTimer, (void *)timerTaskHandler, (void *)this, mInterval);
-		if (ret != TIMER_SUCCESS) {
+		ret = aifw_timer_create(mTimer, (void *)timerTaskHandler, (void *)this, mInterval);
+		if (ret != AIFW_TIMER_SUCCESS) {
 			AIFW_LOGE("Timer creation failed. ret: %d", ret);
 			return AIFW_ERROR;
 		}

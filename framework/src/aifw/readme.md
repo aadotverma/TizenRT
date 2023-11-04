@@ -27,6 +27,7 @@ Model json file contains attributes of a model. These are parsed by AI Framework
 - inferenceResultCount: Count of primitive data values sent to application after inference operation
 - preprocessing: Contains list of values for mean and standard deviation. These are required in pre process operation
 
+```
 Sample JSON
 {
     "crc32": 15000,
@@ -47,6 +48,7 @@ Sample JSON
         "std": []
     }
 }
+```
 
 ## **3. Inference Handler**
 This is a concrete class of AIInferenceHandler. 2 functions overridden by this class are:

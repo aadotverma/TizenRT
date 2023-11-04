@@ -26,7 +26,7 @@ CXXSRCS += TFLM.cpp
 endif
 
 CSRCS += aifw_csv_reader_utils.c aifw_csv_reader.c
-CXXSRCS += AIModel.cpp AIModelService.cpp AIDataBuffer.cpp aifw_utils.cpp AIManifestParser.cpp AIInferenceHandler.cpp timer.cpp
+CXXSRCS += AIModel.cpp AIModelService.cpp AIDataBuffer.cpp aifw_utils.cpp AIManifestParser.cpp AIInferenceHandler.cpp aifw_timer.cpp
 
 
 DEPPATH += --dep-path src/aifw
