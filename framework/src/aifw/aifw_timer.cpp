@@ -103,6 +103,10 @@ aifw_timer_result aifw_timer_stop(aifw_timer *timer)
 		AIFW_LOGE("Pointer to aifw_timer structure is NULL");
 		return AIFW_TIMER_INVALID_ARGS;
 	}
+	if (!timer->enable) {
+		AIFW_LOGE("Timer is not enabled/started yet.");
+		return AIFW_TIMER_SUCCESS;
+	}
 	AIFW_LOGV("Stop Timer");
 	if (sem_post(&(timer->semaphore)) != 0) {
 		AIFW_LOGE("Timer stop failed, error: %d", errno);
