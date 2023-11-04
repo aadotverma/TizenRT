@@ -17,11 +17,33 @@
  ****************************************************************************/
 
 #include <stdio.h>
+#include <memory>
 #include "aifw/aifw.h"
 #include "aifw/aifw_log.h"
 #include "aifw/aifw_csv_reader.h"
 #include "aifw_test_main.h"
-#include "ai_helper.h"
+#include "aifw/AIModelService.h"
+#include "aifw/AIInferenceHandler.h"
+#include "SineWaveInferenceHandler.h"
+
+using namespace aifw;
+
+/**
+ * @brief ModelSetInfo keeps pointers to various model related objects and  variables.
+ */
+struct ModelSetInfo {
+	uint32_t modelCode;
+	std::shared_ptr<AIInferenceHandler> aiInferenceHandler;
+	std::shared_ptr<AIModelService> aiModelService;
+};
+
+template <typename T>
+struct arrayDeleter {
+	void operator()(T const *p)
+	{
+		delete[] p;
+	}
+};
 
 extern uint32_t gSineWaveCode;
 static uint16_t gSensorValueCount;
@@ -30,6 +52,141 @@ static void *gHandle = NULL;
 static uint16_t gResultValueCount;
 static float *gResultValues = NULL;
 static void *gResultHandle = NULL;
+static std::shared_ptr<ModelSetInfo> gModelSetList;
+static uint16_t gModelSetListOffset = 0;
+static uint16_t gMaxModelSetCount = 0;
+
+
+static int16_t findModelSetInfoIndex(uint32_t modelCode)
+{
+	for (int i = 0; i < gModelSetListOffset; i++) {
+		if (gModelSetList.get()[i].modelCode == modelCode)
+			return i;
+	}
+	return -1;
+}
+
+/**
+ * @brief This function initializes AI Helper module. It allocates memory and sets internal data structures for 
+ *        AI helper to work properly. This function is pre-requiste before any application calls ai_helper_load_model API.
+ * @param [in] maxModelSetCount: Maximum number of model sets to be loaded by all applications.
+ * @return: Returns integer result for FAIL(-1) or SUCCESS(0).
+ */
+static int ai_helper_init(uint16_t maxModelSetCount)
+{
+	gMaxModelSetCount = maxModelSetCount;
+	std::shared_ptr<ModelSetInfo> modelSetList(new ModelSetInfo[gMaxModelSetCount], arrayDeleter<ModelSetInfo>());
+	if (!modelSetList) {
+		AIFW_LOGE("model set list Memory Allocation failed.");
+		return -1;
+	}
+	gModelSetList = modelSetList;
+	return 0;
+}
+
+/**
+ * @brief This function deinitializes AI Helper & further no API of AI Helper should be called.
+ * @return: Returns integer result for FAIL(-1) or SUCCESS(0).
+ */
+static int ai_helper_deinit(void)
+{
+	for (int i = 0; i < gModelSetListOffset; i++) {
+		gModelSetList.get()[i].aiInferenceHandler = NULL;
+		gModelSetList.get()[i].aiModelService = NULL;
+	}
+	gModelSetList = NULL;
+	gMaxModelSetCount = 0;
+	gModelSetListOffset = 0;
+	return 0;
+}
+
+/**
+ * @brief This API loads all AI models in model set corresponding to model code. A service is created to perform operation on loaded model set.
+ * It instantiates application components such as inference and process handlers. The loaded models are mapped with application inference handler.
+ * @param [in] modelCode: modelCode for the modelSet.
+ * @param [in] resultCallback: Function to receive inference result from AI Framework.
+ * @param [in] collectRawDataCallback: This function is called by service for data collection and inference operation.
+ * @return: Returns integer result for FAIL(-1) or SUCCESS(0).
+ */
+static int ai_helper_load_model(uint32_t modelCode, InferenceResultListener resultCallback, CollectRawDataListener collectRawDataCallback)
+{
+	int index = findModelSetInfoIndex(modelCode);
+	if (index != -1) {
+		AIFW_LOGE("Model set with modelCode %d loaded already", modelCode);
+		return 0;
+	}
+	gModelSetList.get()[gModelSetListOffset].aiInferenceHandler = std::make_shared<SineWaveInferenceHandler>(resultCallback);
+	if (!gModelSetList.get()[gModelSetListOffset].aiInferenceHandler) {
+		AIFW_LOGE("Model code not suppported or Memory allocation failed for aiInferenceHandler");
+		return -1;
+	}
+	gModelSetList.get()[gModelSetListOffset].aiModelService = std::make_shared<AIModelService>(collectRawDataCallback, gModelSetList.get()[gModelSetListOffset].aiInferenceHandler);
+	if (!gModelSetList.get()[gModelSetListOffset].aiModelService) {
+		gModelSetList.get()[gModelSetListOffset].aiInferenceHandler = nullptr;
+		AIFW_LOGE("Memory allocation failed for aiModelService");
+		return -1;
+	}
+	AIFW_RESULT res = gModelSetList.get()[gModelSetListOffset].aiModelService->prepare();
+	if (res != AIFW_OK) {
+		gModelSetList.get()[gModelSetListOffset].aiInferenceHandler = nullptr;
+		gModelSetList.get()[gModelSetListOffset].aiModelService = nullptr;
+		AIFW_LOGE("AI model service prepare api failed");
+		return -1;
+	}
+	gModelSetList.get()[gModelSetListOffset].modelCode = modelCode;
+	gModelSetListOffset++;
+	return 0;
+}
+
+/**
+ * @brief Starts service for the corresponding modelSet. After this application will start receiving callback in Collect Raw Data listener.
+ * @param [in] modelCode: modelCode for which service is to be started.
+ * @return: Returns integer result for FAIL(-1) or SUCCESS(0).
+ */
+static int ai_helper_start(uint32_t modelCode)
+{
+	int index = findModelSetInfoIndex(modelCode);
+	if (index == -1) {
+		AIFW_LOGE("model info not found for model code %d", modelCode);
+		return -1;
+	}
+	AIFW_RESULT ret = gModelSetList.get()[index].aiModelService->start();
+	return ret == AIFW_OK ? 0 : -1;
+}
+
+/**
+ * @brief Stops the modelService for the corresponding modelSet. Appplication will stop receiving callback in Collect Raw Data listener.
+ * @param [in] modelCode: modelCode for which service is to be stopped.
+ * @return: Returns integer result for FAIL(-1) or SUCCESS(0).
+ */
+static int ai_helper_stop(uint32_t modelCode)
+{
+	int index = findModelSetInfoIndex(modelCode);
+	if (index == -1) {
+		AIFW_LOGE("model info not found for model code %d", modelCode);
+		return -1;
+	}
+	AIFW_RESULT ret = gModelSetList.get()[index].aiModelService->stop();
+	return ret == AIFW_OK ? 0 : -1;
+}
+
+/**
+ * @brief Helper function to push raw data to model service for pre-processing, inference and post processing.
+ * @param [in] modelCode: modelCode for the modelSet.
+ * @param [in] data: Incoming sensor data to be passed for processing.
+ * @param [in] len: Length of incoming sensor data array.
+ * @return: Returns integer result for FAIL(-1) or SUCCESS(0).
+ */
+static int ai_helper_push_data(uint32_t modelCode, void *data, uint16_t len)
+{
+	int index = findModelSetInfoIndex(modelCode);
+	if (index == -1) {
+		AIFW_LOGE("no model registered with modelcode %d", modelCode);
+		return -1;
+	}
+	AIFW_RESULT ret = gModelSetList.get()[index].aiModelService->pushData(data, len);
+	return ret == AIFW_OK ? 0 : -1;
+}
 
 /**
  * @brief: Deinitilizes AI Helper module and stops the service for the modelset.
@@ -69,11 +226,11 @@ static void sine_collectRawDataListener(void)
 	memset(gSensorValues, '\0', gSensorValueCount * sizeof(float));
 	AIFW_RESULT result = readCSVData(gHandle, gSensorValues);
 	if (result == AIFW_OK) {
-		result = ai_helper_push_data(gSineWaveCode, (void *)gSensorValues, gSensorValueCount);
-		if (result == AIFW_OK) {
+		int res = ai_helper_push_data(gSineWaveCode, (void *)gSensorValues, gSensorValueCount);
+		if (res == 0) {
 			AIFW_LOGV("push data operation OK");
 		} else {
-			AIFW_LOGE("push data operation failed. ret: %d", result);
+			AIFW_LOGE("push data operation failed. ret: %d", res);
 		}
 		return;
 	}
@@ -142,11 +299,11 @@ int aifw_test_main(int argc, char *argv[])
 	}
 	AIFW_LOGV("Result data csv initialization OK");
 
-	if (ai_helper_init(1) != AIFW_OK) {
+	if (ai_helper_init(1) != 0) {
 		AIFW_LOGE("AI helper init failed");
 		return -1;
 	}
-	if (ai_helper_load_model(gSineWaveCode, sine_inferenceResultListener, sine_collectRawDataListener) != AIFW_OK) {
+	if (ai_helper_load_model(gSineWaveCode, sine_inferenceResultListener, sine_collectRawDataListener) != 0) {
 		AIFW_LOGE("Load model failed");
 		return -1;
 	}

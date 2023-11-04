@@ -63,7 +63,7 @@ THREADEXEC = TASH_EXECMD_ASYNC
 # C++ Test Example
 ASRCS		=
 CSRCS		=
-CXXSRCS		= ai_helper.cpp SineWaveInferenceHandler.cpp SineWaveProcessHandler.cpp
+CXXSRCS		= SineWaveInferenceHandler.cpp SineWaveProcessHandler.cpp
 MAINSRC		= $(FUNCNAME)$(CXXEXT)
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
