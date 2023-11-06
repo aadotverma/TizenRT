@@ -188,6 +188,18 @@ static int ai_helper_push_data(uint32_t modelCode, void *data, uint16_t len)
 	return ret == AIFW_OK ? 0 : -1;
 }
 
+static void *stopAndDeinit(void *arg)
+{
+	AIFW_LOGV("Started thread");
+	if (ai_helper_stop(gSineWaveCode) != AIFW_OK) {
+		AIFW_LOGE("AI helper stop failed");
+		return NULL;
+	}
+	ai_helper_deinit();
+	AIFW_LOGV("AI helper deinit done.");
+	return NULL;
+}
+
 /**
  * @brief: Deinitilizes AI Helper module and stops the service for the modelset.
  * Application calls this function if fetching raw data from data source fails.
@@ -213,12 +225,12 @@ static void aifw_test_deinit(void)
 	if (retValue != AIFW_OK) {
 		AIFW_LOGE("Result CSV deinit failed with error: %d", retValue);
 	}
-
-	if (ai_helper_stop(gSineWaveCode) != AIFW_OK) {
-		AIFW_LOGE("AI helper stop failed");
+	pthread_t thread;
+	int result = pthread_create(&thread, NULL, stopAndDeinit, NULL);
+	if (result != 0) {
+		AIFW_LOGE("ERROR Failed to start thread");
+		return;
 	}
-	ai_helper_deinit();
-	AIFW_LOGV("AI helper deinit done.");
 }
 
 /**

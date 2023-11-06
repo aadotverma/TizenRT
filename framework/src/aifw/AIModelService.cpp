@@ -19,7 +19,6 @@
 #include "aifw/aifw_timer.h"
 #include <stdlib.h>
 #include <memory>
-#include <pthread.h>
 #include "aifw/aifw.h"
 #include "aifw/aifw_log.h"
 #include "aifw/AIModelService.h"
@@ -38,52 +37,24 @@ AIModelService::~AIModelService()
 	AIFW_LOGV("model service object destoyed");
 }
 
-static void *destroyTimer(void *arg)
-{
-	aifw_timer *ptrToTimer = (aifw_timer *)arg;
-	if (!ptrToTimer) {
-		AIFW_LOGV("Pointer to timer is NULL. No need to destroy.");
-		return NULL;
-	}
-	AIFW_LOGV("destroyTimer: Initializing exit semaphore to 0");
-	sem_init(&(ptrToTimer->exitSemaphore), 0, 0);
-	int status = sem_wait(&(ptrToTimer->exitSemaphore));
-	if (status != 0) {
-		int error = errno;
-		AIFW_LOGE("destroyTimer: ERROR sem_wait failed, errno=%d", error);
-		return NULL;
-	}
-	aifw_timer_result res = aifw_timer_destroy(ptrToTimer);
-	if (res != AIFW_TIMER_SUCCESS) {
-		AIFW_LOGE("Destroying timer failed. ret: %d", res);
-		return NULL;
-	}
-	free(ptrToTimer);
-	ptrToTimer = NULL;
-	AIFW_LOGV("Timer destroyed");
-	return NULL;
-}
-
 AIFW_RESULT AIModelService::freeTimer(void)
 {
-	if (pthread_equal(pthread_self(), mTimer->timerThread)) {
-		pthread_t thread;
-		int result = pthread_create(&thread, NULL, destroyTimer, (void *)mTimer);
-		if (result != 0) {
-			AIFW_LOGE("ERROR Failed to start destroyTimer thread");
+	if (mTimer) {
+		AIFW_LOGV("Initializing exit semaphore to 0");
+		sem_init(&(mTimer->exitSemaphore), 0, 0);
+		int status = sem_wait(&(mTimer->exitSemaphore));
+		if (status != 0) {
+			int error = errno;
+			AIFW_LOGE("ERROR sem_wait failed, errno=%d", error);
 			return AIFW_ERROR;
 		}
-		AIFW_LOGV("Started destroyTimer thread");
-	} else {
-		if (mTimer) {
-			aifw_timer_result res = aifw_timer_destroy(mTimer);
-			if (res != AIFW_TIMER_SUCCESS) {
-				AIFW_LOGE("Destroying timer failed. ret: %d", res);
-				return AIFW_ERROR;
-			}
-			free(mTimer);
-			mTimer = NULL;
+		aifw_timer_result res = aifw_timer_destroy(mTimer);
+		if (res != AIFW_TIMER_SUCCESS) {
+			AIFW_LOGE("Destroying timer failed. ret: %d", res);
+			return AIFW_ERROR;
 		}
+		free(mTimer);
+		mTimer = NULL;
 	}
 	return AIFW_OK;
 }
