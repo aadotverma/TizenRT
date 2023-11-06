@@ -213,9 +213,7 @@ static void *aifw_timerthread_cb(void *parameter)
 		}
 	}
 errorout:
-	AIFW_LOGV("sem_destroy");
-	sem_destroy(&(((aifw_timer *)parameter)->semaphore));
-	/* Then delete the timer */
+	/* Delete the timer */
 	AIFW_LOGV("aifw_timerthread_cb: Deleting timer");
 	status = timer_delete(timerId);
 	if (status != OK) {
@@ -224,8 +222,10 @@ errorout:
 	/* Detach the signal handler */
 	act.sa_handler = SIG_DFL;
 	status = sigaction(AIFW_TIMER_SIGNAL, &act, NULL);
-	AIFW_LOGV("aifw_timerthread_cb: done");
+	AIFW_LOGV("aifw_timerthread_cb: sem_destroy");
+	sem_destroy(&(((aifw_timer *)parameter)->semaphore));
 	sem_post(&(((aifw_timer *)parameter)->exitSemaphore));
+	AIFW_LOGV("aifw_timerthread_cb: done");
 	return NULL;
 }
 

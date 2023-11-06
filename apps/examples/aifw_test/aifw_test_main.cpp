@@ -188,7 +188,7 @@ static int ai_helper_push_data(uint32_t modelCode, void *data, uint16_t len)
 	return ret == AIFW_OK ? 0 : -1;
 }
 
-static void *stopAndDeinit(void *arg)
+static void *stopAndDeinitHelperModule(void *arg)
 {
 	AIFW_LOGV("Started thread");
 	if (ai_helper_stop(gSineWaveCode) != AIFW_OK) {
@@ -226,7 +226,7 @@ static void aifw_test_deinit(void)
 		AIFW_LOGE("Result CSV deinit failed with error: %d", retValue);
 	}
 	pthread_t thread;
-	int result = pthread_create(&thread, NULL, stopAndDeinit, NULL);
+	int result = pthread_create(&thread, NULL, stopAndDeinitHelperModule, NULL);
 	if (result != 0) {
 		AIFW_LOGE("ERROR Failed to start thread");
 		return;
