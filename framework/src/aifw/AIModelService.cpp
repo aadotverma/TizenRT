@@ -40,8 +40,6 @@ AIModelService::~AIModelService()
 AIFW_RESULT AIModelService::freeTimer(void)
 {
 	if (mTimer) {
-		AIFW_LOGV("Initializing exit semaphore to 0");
-		sem_init(&(mTimer->exitSemaphore), 0, 0);
 		int status = sem_wait(&(mTimer->exitSemaphore));
 		if (status != 0) {
 			int error = errno;

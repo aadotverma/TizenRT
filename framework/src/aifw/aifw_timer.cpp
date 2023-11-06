@@ -147,6 +147,9 @@ static void *aifw_timerthread_cb(void *parameter)
 	AIFW_LOGV("aifw_timerthread_cb: Initializing semaphore to 0");
 	sem_init(&(((aifw_timer *)parameter)->semaphore), 0, 0);
 
+	AIFW_LOGV("Initializing exit semaphore to 0");
+	sem_init(&(((aifw_timer *)parameter)->exitSemaphore), 0, 0);
+
 	/* Start waiter thread  */
 	AIFW_LOGV("aifw_timerthread_cb: Unmasking signal %d", AIFW_TIMER_SIGNAL);
 	(void)sigemptyset(&sigset);
