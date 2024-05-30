@@ -213,10 +213,21 @@ EXTRA_LIBS += $(TOPDIR)/board/rtl8721csm/src/libs/lib_wps.a
 endif
 endif
 
-ifeq ($(CONFIG_AMEBAD_CMSIS_NN),y)
+# CMSIS-DSP library
+ifeq ($(CONFIG_EXTERNAL_CMSIS_DSP),y)
 ifeq ($(CONFIG_ARCH_FPU),y)
-EXTRA_LIBS += $(TOPDIR)/board/rtl8721csm/src/libs/lib_cmsis_nn_fpu.a
+EXTRA_LIBS += $(TOPDIR)/../external/cmsis_dsp/$(CONFIG_ARCH_BOARD)/lib_cmsis_dsp_fpu.a
 else
-EXTRA_LIBS += $(TOPDIR)/board/rtl8721csm/src/libs/lib_cmsis_nn.a
+EXTRA_LIBS += $(TOPDIR)/../external/cmsis_dsp/$(CONFIG_ARCH_BOARD)/lib_cmsis_dsp.a
 endif
 endif
+
+# CMSIS-NN library
+ifeq ($(CONFIG_EXTERNAL_CMSIS_NN),y)
+ifeq ($(CONFIG_ARCH_FPU),y)
+EXTRA_LIBS += $(TOPDIR)/../external/cmsis_nn/$(CONFIG_ARCH_BOARD)/lib_cmsis_nn_fpu.a
+else
+EXTRA_LIBS += $(TOPDIR)/../external/cmsis_nn/$(CONFIG_ARCH_BOARD)/lib_cmsis_nn.a
+endif
+endif
+

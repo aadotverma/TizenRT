@@ -295,6 +295,8 @@ else
 endif
 endif
 
-ifeq ($(CONFIG_AMEBASMART_CMSIS_NN),y)
-EXTRA_LIBS += $(TOPDIR)/board/rtl8730e/src/libs/lib_cmsis_nn.a
+# CMSIS-NN library
+ifeq ($(CONFIG_EXTERNAL_CMSIS_NN),y)
+EXTRA_LIBS += $(TOPDIR)/../external/cmsis_nn/$(CONFIG_ARCH_BOARD)/lib_cmsis_nn.a
 endif
+

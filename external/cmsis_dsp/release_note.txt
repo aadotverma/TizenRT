@@ -1,0 +1,13 @@
+
+/* Release Note */
+
+[rtl8721csm]
+FPU:		lib_cmsis_dsp_fpu_ver_9968dc2780f9c9ef87cef5028b33891240df96a3_2024/05/21-19:16:39
+Non-FPU:	lib_cmsis_dsp_ver_9968dc2780f9c9ef87cef5028b33891240df96a3_2024/05/21-19:18:38
+
+GitHub CMSIS-DSP Release Info
+https://github.com/ARM-software/CMSIS-DSP/releases
+
+GitHub CMSIS-DSP Version
+https://github.com/ARM-software/CMSIS-DSP/tree/v1.15.0
+

@@ -226,10 +226,3 @@ config AMEBASMART_TRUSTZONE
 
 endmenu
 
-menu "Realtek RTL8730E CMSIS_NN Support"
-
-config AMEBASMART_CMSIS_NN
-	bool "Enable Amebasmart CMSIS_NN"
-	default n
-
-endmenu
