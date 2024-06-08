@@ -88,7 +88,9 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 .built: $(OBJS)
+	$(eval CMSIS_OBJS = $(wildcard *.o))
 	$(call ARCHIVE, $(BIN), $(OBJS))
+	$(CROSSDEV)ar -rcs $(BIN) $(CMSIS_OBJS)
 	$(Q) touch .built
 
 .depend: Makefile $(SRCS)
@@ -96,6 +98,9 @@ $(COBJS): %$(OBJEXT): %.c
 	$(Q) touch $@
 
 depend: .depend
+	$(CROSSDEV)ar -xv ./rtl8721csm/lib_cmsis_nn.a
+	$(info AAYUSH external/cmsis_nn/Makefile depend target called)
+
 
 clean:
 	$(call DELFILE, .built)
