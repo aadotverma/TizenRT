@@ -88,11 +88,15 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 .built: $(OBJS)
+	$(eval CMSIS_OBJS = $(wildcard *.o))
 	$(call ARCHIVE, $(BIN), $(OBJS))
+	$(Q) $(CROSSDEV)ar -rcs $(BIN) $(CMSIS_OBJS)
+	@find . -name "*.o" -delete
 	$(Q) touch .built
 
 .depend: Makefile $(SRCS)
 	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(CROSSDEV)ar -x .$(DELIM)$(CMSIS_NN_DIR_NAME_UNQUOTATED)$(DELIM)$(CMSIS_NN_LIB)$(LIBEXT)
 	$(Q) touch $@
 
 depend: .depend
