@@ -96,11 +96,10 @@ $(COBJS): %$(OBJEXT): %.c
 
 .depend: Makefile $(SRCS)
 	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(CROSSDEV)ar -x .$(DELIM)$(CMSIS_NN_DIR_NAME_UNQUOTATED)$(DELIM)$(CMSIS_NN_LIB)$(LIBEXT)
 	$(Q) touch $@
 
 depend: .depend
-	$(Q) $(CROSSDEV)ar -x ./rtl8721csm/lib_cmsis_nn.a
-
 
 clean:
 	$(call DELFILE, .built)
