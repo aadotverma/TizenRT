@@ -104,7 +104,6 @@ $(CXXOBJS): %$(OBJEXT): %.cpp
 
 define SDIR_template
 $(1)_$(2):
-	$(info AAYUSH SDIR_template $(1) $(2))
 	$(Q) $(MAKE) -C $(1) $(2) TOPDIR="$(TOPDIR)" EXTDIR="$(EXTDIR)"
 
 endef
@@ -115,7 +114,6 @@ $(foreach SDIR, $(BUILDIRS), $(eval $(call SDIR_template,$(SDIR),clean)))
 $(foreach SDIR, $(BUILDIRS), $(eval $(call SDIR_template,$(SDIR),distclean)))
 
 $(BIN): $(OBJS) $(foreach SDIR, $(CONFIGURED_EXT), $(SDIR)_all)
-	$(info AAYUSH BIN target of external/Makefile called)
 	$(call ARCHIVE, $@, $(OBJS))
 
 .depdirs: $(foreach SDIR, $(CONFIGURED_EXT), $(SDIR)_depend)
@@ -127,7 +125,6 @@ $(BIN): $(OBJS) $(foreach SDIR, $(CONFIGURED_EXT), $(SDIR)_all)
 	$(Q) touch $@
 
 depend: .depend
-	$(info AAYUSH external/Makefile depend target called)
 
 clean: $(foreach SDIR, $(BUILDIRS), $(SDIR)_clean)
 	$(call DELFILE, $(BIN))
