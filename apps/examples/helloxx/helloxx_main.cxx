@@ -15,40 +15,6 @@
  * language governing permissions and limitations under the License.
  *
  ****************************************************************************/
-//***************************************************************************
-// examples/helloxx/helloxx_main.cxx
-//
-//   Copyright (C) 2009, 2011-2013 Gregory Nutt. All rights reserved.
-//   Author: Gregory Nutt <gnutt@nuttx.org>
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-//
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in
-//    the documentation and/or other materials provided with the
-//    distribution.
-// 3. Neither the name NuttX nor the names of its contributors may be
-//    used to endorse or promote products derived from this software
-//    without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-// COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-// OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-// AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
-//
-//***************************************************************************
 
 //***************************************************************************
 // Included Files
@@ -60,120 +26,187 @@
 #include <debug.h>
 
 #include <tinyara/init.h>
+#include <queue>
+#include <functional>
 
-//***************************************************************************
-// Definitions
-//***************************************************************************
-// Debug ********************************************************************
-// Non-standard debug that may be enabled just for testing the constructors
+pthread_mutex_t mutex;
+pthread_cond_t cond;
+pthread_mutex_t queueMutex;
+pthread_cond_t queueCond;
 
-#ifndef CONFIG_DEBUG
-#  undef CONFIG_DEBUG_CXX
-#endif
+std::queue<std::function<void()>> mQueueData;
 
-#ifdef CONFIG_DEBUG_CXX
-#  define cxxdbg              dbg
-#  define cxxlldbg            lldbg
-#  ifdef CONFIG_DEBUG_VERBOSE
-#    define cxxvdbg           vdbg
-#    define cxxllvdbg         llvdbg
-#  else
-#    define cxxvdbg(...)
-#    define cxxllvdbg(...)
-#  endif
-#else
-#  define cxxdbg(...)
-#  define cxxlldbg(...)
-#  define cxxvdbg(...)
-#  define cxxllvdbg(...)
-#endif
-
-//***************************************************************************
-// Private Classes
-//***************************************************************************
-
-class CHelloWorld
+std::function<void()> deQueue()
 {
-public:
-	CHelloWorld(void) : mSecret(42)
-	{
-		cxxdbg("Constructor: mSecret=%d\n", mSecret);
+	if (pthread_mutex_lock(&queueMutex) != 0) {
+		printf("pthread_mutex_lock failed on queueMutex in deQueue\n");
+		return {};
 	}
-
-	~CHelloWorld(void)
-	{
-		cxxdbg("Destructor\n");
-	}
-
-	bool HelloWorld(void)
-	{
-		cxxdbg("HelloWorld: mSecret=%d\n", mSecret);
-
-		if (mSecret != 42)
-		{
-			printf("CHelloWorld::HelloWorld: CONSTRUCTION FAILED!\n");
-			return false;
-		}
-		else
-		{
-			printf("CHelloWorld::HelloWorld: Hello, World!!\n");
-			return true;
+	if (mQueueData.empty()) {
+		if (pthread_cond_wait(&queueCond, &queueMutex) != 0) {
+			printf("pthread_cond_wait failed on queueCond & queueMutex in deQueue()\n");
+			return {};
 		}
 	}
 
-private:
-	int mSecret;
-};
+	auto data = std::move(mQueueData.front());
+	mQueueData.pop();
+	return data;
+}
 
-//***************************************************************************
-// Private Data
-//***************************************************************************
+int init()
+{
+	//Initialize mutex and cond
+	if (pthread_mutex_init(&mutex, NULL) != 0) {
+		printf("pthread_mutex_init failed for mutex\n");
+		return -1;
+	}
+																				
+	if (pthread_cond_init(&cond, NULL) != 0) {
+		printf("pthread_cond_init failed for cond\n");
+		return -1;
+	}
 
-// Define a statically constructed CHellowWorld instance if C++ static
-// initializers are supported by the platform
+	//Initialize queue mutex and queue cond
+	if (pthread_mutex_init(&queueMutex, NULL) != 0) {
+		printf("pthread_mutex_init failed for queueMutex\n");
+		return -1;
+	}                                                                     
+																				
+	if (pthread_cond_init(&queueCond, NULL) != 0) {
+		printf("pthread_cond_init failed for queueCond\n");
+		return -1;
+	}
 
-#if defined(CONFIG_HAVE_CXXINITIALIZE) || defined(CONFIG_BINFMT_CONSTRUCTORS)
-static CHelloWorld g_HelloWorld;
-#endif
+	return 0;
+}
 
-//***************************************************************************
-// Public Functions
-//***************************************************************************
+void createPlayer(int &ret)
+{
+	printf("@@@@@@ createPlayer called\n");
+	if (pthread_mutex_lock(&mutex) != 0) {
+		printf("pthread_mutex_lock failed on mutex in createPlayer()\n");
+		ret = -1;
+		return;
+	}
+	if (pthread_cond_signal(&cond) != 0) {
+    	printf("pthread_cond_signal failed on cond in createplayer()\n");
+		ret = -1;
+		return;
+	}
+	printf("@@@@@@ pthread_cond_signal done in createPlayer()\n");
+	if (pthread_mutex_unlock(&mutex) != 0) {
+		printf("pthread_mutex_unlock failed on mutex in createPlayer()\n");
+		ret = -1;
+		return;
+	}
+	printf("@@@@@@ createPlayer done\n");
+}
 
-/****************************************************************************
- * Name: helloxx_main
- ****************************************************************************/
+int create()
+{
+	int ret = 0;
+	if (pthread_mutex_lock(&mutex) != 0) {
+		printf("pthread_mutex_lock failed on mutex in create()\n");
+		return -1;
+	}
+
+	// Add the function into queue
+	if (pthread_mutex_lock(&queueMutex) != 0) {
+		printf("pthread_mutex_lock failed on queueMutex in create()\n");
+		return -1;
+	}
+	std::function<void()> func = std::bind(createPlayer, std::ref(ret));
+	mQueueData.push(func);
+	if (pthread_cond_signal(&queueCond) != 0) {
+    	printf("pthread_cond_signal failed on queueCond in create()\n");
+		return -1;
+	}	
+	if (pthread_mutex_unlock(&queueMutex) != 0) {
+		printf("pthread_mutex_unlock failed on queueMutex in create()\n");
+		return -1;
+	}
+	printf("@@@@@@ createPlayer enqueued done successfully\n");
+
+	printf("@@@@@@ Now, pthread_cond_wait in create()\n");
+	if (pthread_cond_wait(&cond, &mutex) != 0) {
+		printf("pthread_cond_wait failed on cond and mutex in create()\n");
+		return -1;
+	}
+
+	printf("@@@@@@ create done\n");
+	return ret;
+}
+
+
+// Worker thread
+void* workerThread(void* arg)
+{
+	while (true) {
+		std::function<void()> run = deQueue();
+		if (run != nullptr) {
+			run();
+		}
+	}
+}
+
+//Application thread
+void* appThread(void* arg)
+{
+	// Initialize mutex and condition variable
+	int ret = init();
+	if (ret != 0) {
+		printf("init failed\n");
+		return NULL;
+	}
+	printf("init success\n");
+
+	// Create worker thread
+	pthread_t thread;
+	struct sched_param sparam;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, 8192);
+	sparam.sched_priority = 150;
+	pthread_attr_setschedparam(&attr, &sparam);
+	ret = pthread_create(&thread, &attr, workerThread, NULL);
+	if (ret != OK) {
+		medvdbg("Fail to create worker thread, return value : %d\n", ret);
+		return NULL;
+	}
+	printf("Worker thread created successfully with priority %d\n", sparam.sched_priority);
+	pthread_setname_np(thread, "WorkerThread");
+
+	ret = create();
+	if (ret != 0) {
+		printf("create failed\n");
+	}
+	printf("create success\n");
+	return NULL;
+}
 
 extern "C"
 {
 	int helloxx_main(int argc, char *argv[])
 	{
-		// Print the cpp version used
-		printf("c++ version used : %d\n", __cplusplus);
+		// Create application thread with priority 100.
+		pthread_t mWorkerThread;
+		struct sched_param sparam;
+		pthread_attr_t attr;
+		pthread_attr_init(&attr);
+		pthread_attr_setstacksize(&attr, 8192);
+		sparam.sched_priority = 120;
+		pthread_attr_setschedparam(&attr, &sparam);
+		int ret = pthread_create(&mWorkerThread, &attr, appThread, NULL);	
+		if (ret != OK) {
+			printf("Fail to create application thread, return value : %d\n", ret);
+			return -1;
+		}
+		printf("Application thread created successfully with priority %d\n", sparam.sched_priority);
+		pthread_setname_np(mWorkerThread, "ApplicationThread");
 
-		// Exercise an explictly instantiated C++ object
-
-		CHelloWorld *pHelloWorld = new CHelloWorld;
-		printf("helloxx_main: Saying hello from the dynamically constructed instance\n");
-		pHelloWorld->HelloWorld();
-
-		// Exercise an C++ object instantiated on the stack
-
-#ifndef CONFIG_EXAMPLES_HELLOXX_NOSTACKCONST
-		CHelloWorld HelloWorld;
-
-		printf("helloxx_main: Saying hello from the instance constructed on the stack\n");
-		HelloWorld.HelloWorld();
-#endif
-
-		// Exercise an statically constructed C++ object
-
-#if defined(CONFIG_HAVE_CXXINITIALIZE) || defined(CONFIG_BINFMT_CONSTRUCTORS)
-		printf("helloxx_main: Saying hello from the statically constructed instance\n");
-		g_HelloWorld.HelloWorld();
-#endif
-
-		delete pHelloWorld;
-		return 0;
+		while (true) {
+			sleep(10);
+		}
 	}
 }
