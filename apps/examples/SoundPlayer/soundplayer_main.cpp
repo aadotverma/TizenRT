@@ -28,6 +28,7 @@
 #include <media/MediaPlayer.h>
 #include <media/FileInputDataSource.h>
 #include <media/MediaUtils.h>
+#include <media/SoundManager.h>
 #include <string.h>
 #include <debug.h>
 #include <fcntl.h>
@@ -55,7 +56,7 @@ class SoundPlayer : public MediaPlayerObserverInterface,
 {
 public:
 	SoundPlayer() : mNumContents(0), mPlayIndex(-1), mHasFocus(false), mSampleRate(DEFAULT_SAMPLERATE_TYPE), \
-						mPaused(false), mIsPlaying(false), mStopped(false), mTrackFinished(false), mVolume(DEFAULT_VOLUME) {};
+						mPaused(false), mIsPlaying(false), mStopped(false), mTrackFinished(false), mVolume(DEFAULT_VOLUME), mPreset(0), mStreamInfo(nullptr) {};
 	~SoundPlayer() {};
 	bool init(char *argv[]);
 	player_result_t startPlayback(void);
@@ -85,6 +86,8 @@ private:
 	bool mTrackFinished;
 	unsigned int mSampleRate;
 	uint8_t mVolume;
+	uint32_t mPreset;
+	std::shared_ptr<stream_info_t> mStreamInfo;
 	void loadContents(const char *path);
 };
 
@@ -256,14 +259,15 @@ bool SoundPlayer::init(char *argv[])
 	stream_info_t *info;
 	stream_info_create((stream_policy_t)(atoi(argv[4])), &info);
 	auto deleter = [](stream_info_t *ptr) { stream_info_destroy(ptr); };
-	auto stream_info = std::shared_ptr<stream_info_t>(info, deleter);
+	mStreamInfo = std::shared_ptr<stream_info_t>(info, deleter);
 	mFocusRequest = FocusRequest::Builder()
-						.setStreamInfo(stream_info)
+						.setStreamInfo(mStreamInfo)
 						.setFocusChangeListener(shared_from_this())
 						.build();
-	mp.setStreamInfo(stream_info);
+	mp.setStreamInfo(mStreamInfo);
 
 	mSampleRate = atoi(argv[3]);
+	mPreset = atoi(argv[5]);
 	mTrackFinished = false;
 
 	auto &focusManager = FocusManager::getFocusManager();
@@ -293,11 +297,24 @@ player_result_t SoundPlayer::startPlayback(void)
 		printf("prepare failed res : %d\n", res);
 		return res;
 	}
+	bool ret = setEqualizer(mPreset);
+	if (!ret) {
+		printf("SoundManager setEqualizer failed\n");
+		return PLAYER_ERROR_INTERNAL_OPERATION_FAILED;
+	}
 	uint8_t curVolume = 0;
-	mp.getVolume(&curVolume);
+	ret = getVolume(&curVolume, mStreamInfo.get());
+	if (!ret) {
+		printf("SoundManager getVolume failed\n");
+		return PLAYER_ERROR_INTERNAL_OPERATION_FAILED;
+	}
 	printf("Current volume : %d new Volume : %d\n", curVolume, mVolume);
 	if (curVolume != mVolume) {
-		mp.setVolume(mVolume);
+		ret = setVolume(mVolume, mStreamInfo.get());
+		if (!ret) {
+			printf("SoundManager setVolume failed\n");
+			return PLAYER_ERROR_INTERNAL_OPERATION_FAILED;
+		}
 	}
 	res = mp.start();
 	if (res != PLAYER_OK) {
@@ -384,7 +401,7 @@ int soundplayer_main(int argc, char *argv[])
 	auto player = std::shared_ptr<SoundPlayer>(new SoundPlayer());
 	printf("cur SoundPlayer : %x\n", &player);
 
-	if (argc != 5) {
+	if (argc != 6) {
 		printf("invalid input\n");
 		return -1;
 	}
