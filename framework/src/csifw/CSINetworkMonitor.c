@@ -32,6 +32,7 @@ static wifi_manager_cb_s g_wifi_callbacks = {
 	NULL,
 	NULL,
 	NULL,
+	NULL,
 };
 
 CSIFW_RES network_monitor_init(network_status_listener network_status_callback)
