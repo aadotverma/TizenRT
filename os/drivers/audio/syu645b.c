@@ -1057,6 +1057,7 @@ static void syu645b_set_equalizer(FAR struct syu645b_dev_s *priv, uint32_t prese
 	default :
 		break;
 	}
+	priv->volume = 79;
 }
 
 /****************************************************************************
