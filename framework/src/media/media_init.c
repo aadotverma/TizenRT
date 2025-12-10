@@ -20,6 +20,7 @@
 #include <media/media_init.h>
 #include "audio/audio_manager.h"
 
+/* Test PR in open source */
 int media_init(void)
 {
 	audio_manager_init();
