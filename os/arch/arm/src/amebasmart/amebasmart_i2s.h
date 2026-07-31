@@ -43,6 +43,9 @@ extern "C" {
  ************************************************************************************/
 /* SAI module features */
 
+/* Enable deterministic race condition reproduction for testing */
+#define CONFIG_AMEBASMART_I2S_RACE_TEST 1
+
 /************************************************************************************
  * Public Data
  ************************************************************************************/
@@ -80,6 +83,39 @@ typedef enum {
  ****************************************************************************/
 
 FAR struct i2s_dev_s *amebasmart_i2s_initialize(uint16_t port);
+
+#ifdef CONFIG_AMEBASMART_I2S_RACE_TEST
+/****************************************************************************
+ * Name: amebasmart_i2s_arm_tx_stop_race
+ *
+ * Description:
+ *   Arm the race condition test between i2s_tx_worker and i2s_stop.
+ *   This should be called before starting playback.
+ *
+ ****************************************************************************/
+void amebasmart_i2s_arm_tx_stop_race(void);
+
+/****************************************************************************
+ * Name: amebasmart_i2s_wait_tx_worker_peek
+ *
+ * Description:
+ *   Wait for the TX worker thread to have observed tx.done queue.
+ *   This function blocks until the worker thread has called sq_peek()
+ *   and is blocked waiting to continue.
+ *
+ ****************************************************************************/
+void amebasmart_i2s_wait_tx_worker_peek(void);
+
+/****************************************************************************
+ * Name: amebasmart_i2s_continue_tx_worker
+ *
+ * Description:
+ *   Release the TX worker thread to continue execution.
+ *   Call this after i2s_stop() has removed the container from tx.done.
+ *
+ ****************************************************************************/
+void amebasmart_i2s_continue_tx_worker(void);
+#endif /* CONFIG_AMEBASMART_I2S_RACE_TEST */
 
 #undef EXTERN
 #if defined(__cplusplus)

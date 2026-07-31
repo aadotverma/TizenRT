@@ -55,9 +55,18 @@
 #include "PinNames.h"
 #include "i2s_api.h"
 #include "board_pins.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#ifdef CONFIG_AMEBASMART_I2S_RACE_TEST
+/* Test synchronization objects for deterministic race condition reproduction */
+static sem_t g_tx_worker_peeked;
+static sem_t g_tx_worker_continue;
+static volatile bool g_tx_race_armed;
+#endif
+
 // #ifndef CONFIG_SCHED_WORKQUEUE
 // #error Work queue support is required (CONFIG_SCHED_WORKQUEUE)
 // #endif
@@ -489,6 +498,10 @@ static void i2s_tx_worker(void *arg)
 	struct amebasmart_buffer_s *bfcontainer;
 	irqstate_t flags;
 
+#ifdef CONFIG_AMEBASMART_I2S_RACE_TEST
+	int ret;
+#endif
+
 	DEBUGASSERT(priv);
 
 	/* When the transfer was started, the active buffer containers were removed
@@ -505,6 +518,29 @@ static void i2s_tx_worker(void *arg)
 
 	/* Process each buffer in the tx.done queue */
 	while (sq_peek(&priv->tx.done) != NULL) {
+
+#ifdef CONFIG_AMEBASMART_I2S_RACE_TEST
+		/* Arm the race condition - this will be caught by i2s_stop() */
+		amebasmart_i2s_arm_tx_stop_race();
+		if (g_tx_race_armed) {
+			g_tx_race_armed = false;
+
+			/* Tell i2s_stop() that worker has observed tx.done. */
+			printf("[RACE] i2s_tx_worker: sq_peek(tx.done) returned non-NULL, armed race\n");
+			sem_post(&g_tx_worker_peeked);
+
+			/*
+			 * Block here so i2s_stop() can remove the container
+			 * from tx.done.
+			 */
+			printf("[RACE] i2s_tx_worker: waiting for i2s_stop to remove container...\n");
+			do {
+				ret = sem_wait(&g_tx_worker_continue);
+			} while (ret < 0 && errno == EINTR);
+			printf("[RACE] i2s_tx_worker: released by i2s_stop, about to call sq_remfirst\n");
+		}
+#endif
+
 		/* Remove the buffer container from the tx.done queue.  NOTE that
 		 * interrupts must be enabled to do this because the tx.done queue is
 		 * also modified from the interrupt level.
@@ -1543,12 +1579,14 @@ static int i2s_stop_transfer(struct i2s_dev_s *dev, i2s_ch_dir_t dir)
 
 static int i2s_stop(struct i2s_dev_s *dev, i2s_ch_dir_t dir)
 {
+	printf("[RACE] i2s_stop: i2s_stop enter\n");
 	struct amebasmart_i2s_s *priv = (struct amebasmart_i2s_s *)dev;
 	irqstate_t flags;
 	struct amebasmart_buffer_s *bfcontainer;
 	DEBUGASSERT(priv);
 
 	i2s_exclsem_take(priv);
+	printf("[RACE] i2s_stop: exclsem took\n");
 
 #if defined(I2S_HAVE_TX) && (0 < I2S_HAVE_TX)
 	if (dir == I2S_TX) {
@@ -1573,12 +1611,27 @@ static int i2s_stop(struct i2s_dev_s *dev, i2s_ch_dir_t dir)
 			i2s_buf_tx_free(priv, bfcontainer);
 		}
 
+#ifdef CONFIG_AMEBASMART_I2S_RACE_TEST
+		/* Wait for tx_worker to peek tx.done before we remove containers */
+		printf("[RACE] i2s_stop: waiting for tx_worker to peek tx.done...\n");
+		amebasmart_i2s_wait_tx_worker_peek();
+		printf("[RACE] i2s_stop: tx_worker peeked, now removing container from tx.done\n");
+#endif
+
 		while (sq_peek(&priv->tx.done) != NULL) {
 			flags = enter_critical_section();
 			bfcontainer = (struct amebasmart_buffer_s *)sq_remfirst(&priv->tx.done);
 			leave_critical_section(flags);
+			printf("[RACE] i2s_stop: removed container %p from tx.done, tx.done now %s\n", 
+			       bfcontainer, sq_peek(&priv->tx.done) ? "non-empty" : "empty");
 			i2s_buf_tx_free(priv, bfcontainer);
 		}
+
+#ifdef CONFIG_AMEBASMART_I2S_RACE_TEST
+		/* Release tx_worker to continue - it will hit DEBUGASSERT */
+		printf("[RACE] i2s_stop: releasing tx_worker to hit DEBUGASSERT\n");
+		amebasmart_i2s_continue_tx_worker();
+#endif
 
 		/* Pause TX processing (keep thread alive for restart) */
 		priv->tx.running = false;
@@ -1920,6 +1973,13 @@ struct i2s_dev_s *amebasmart_i2s_initialize(uint16_t port)
 	sem_init(&priv->exclsem, 0, 1);
 	priv->dev.ops = &g_i2sops;
 
+#ifdef CONFIG_AMEBASMART_I2S_RACE_TEST
+	/* Initialize test synchronization objects for race condition reproduction */
+	sem_init(&g_tx_worker_peeked, 0, 0);
+	sem_init(&g_tx_worker_continue, 0, 0);
+	g_tx_race_armed = false;
+#endif
+
 	ret = i2s_allocate_wd(priv);
 	if (ret != OK) {
 		goto errout_with_alloc;
@@ -2056,4 +2116,50 @@ void i2s_pminitialize(void)
 	pmu_register_sleep_callback(PMU_I2S_DEVICE, (PSM_HOOK_FUN)rtk_i2s_suspend, NULL, (PSM_HOOK_FUN)rtk_i2s_resume, NULL);
 }
 #endif
+
+#ifdef CONFIG_AMEBASMART_I2S_RACE_TEST
+/****************************************************************************
+ * Name: amebasmart_i2s_arm_tx_stop_race
+ *
+ * Description:
+ *   Arm the race condition test between i2s_tx_worker and i2s_stop.
+ *   This should be called before starting playback.
+ *
+ ****************************************************************************/
+void amebasmart_i2s_arm_tx_stop_race(void)
+{
+	g_tx_race_armed = true;
+}
+
+/****************************************************************************
+ * Name: amebasmart_i2s_wait_tx_worker_peek
+ *
+ * Description:
+ *   Wait for the TX worker thread to have observed tx.done queue.
+ *   This function blocks until the worker thread has called sq_peek()
+ *   and is blocked waiting to continue.
+ *
+ ****************************************************************************/
+void amebasmart_i2s_wait_tx_worker_peek(void)
+{
+	int ret;
+
+	do {
+		ret = sem_wait(&g_tx_worker_peeked);
+	} while (ret < 0 && errno == EINTR);
+}
+
+/****************************************************************************
+ * Name: amebasmart_i2s_continue_tx_worker
+ *
+ * Description:
+ *   Release the TX worker thread to continue execution.
+ *   Call this after i2s_stop() has removed the container from tx.done.
+ *
+ ****************************************************************************/
+void amebasmart_i2s_continue_tx_worker(void)
+{
+	sem_post(&g_tx_worker_continue);
+}
+#endif /* CONFIG_AMEBASMART_I2S_RACE_TEST */
 

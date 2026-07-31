@@ -32,7 +32,7 @@ namespace media {
 #define LOG_STATE_INFO(state) medvdbg("state at %s[line : %d] : %s\n", __func__, __LINE__, player_state_names[(state)])
 #define LOG_STATE_DEBUG(state) meddbg("state at %s[line : %d] : %s\n", __func__, __LINE__, player_state_names[(state)])
 
-MediaPlayerImpl::MediaPlayerImpl(MediaPlayer &player) : mPlayer(player)
+MediaPlayerImpl::MediaPlayerImpl(MediaPlayer &player) : mPlayer(player), mPlaybackCount(0)
 {
 	mPlayerObserver = nullptr;
 	mCurState = PLAYER_STATE_NONE;
@@ -461,6 +461,9 @@ void MediaPlayerImpl::startPlayer(player_result_t &ret, sem_t &syncSem)
 		mInputHandler.seekTo(0);
 		mInputHandler.start();
 	}
+
+	/* Reset playback counter on start */
+	mPlaybackCount = 0;
 
 	audio_manager_result_t res;
 
@@ -1187,6 +1190,14 @@ void MediaPlayerImpl::playback(std::chrono::milliseconds timeout, uint8_t playba
 				mpw.enQueue(&MediaPlayerImpl::stopPlaybackInternal, shared_from_this(), false);
 				break;
 			}
+		}
+		/* Increment playback counter and trigger stop after two iterations */
+		mPlaybackCount++;
+		meddbg("playback count: %d\n", mPlaybackCount.load());
+		if (mPlaybackCount.load() >= 2) {
+			meddbg("playback ran two times, calling stopPlaybackInternal with drain=true\n");
+			usleep(200000);
+			stopPlaybackInternal(false);
 		}
 	} else if (num_read == 0) {
 		mCurState = PLAYER_STATE_COMPLETING;

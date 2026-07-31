@@ -145,7 +145,7 @@ private:
 	void setPlayerLooping(bool loop, player_result_t &ret, sem_t &syncSem);
 	void dequeueAndRunObserverCallback();
 
-private:
+ private:
 	MediaPlayer &mPlayer;
 	std::atomic<player_state_t> mCurState;
 	unsigned char *mBuffer;
@@ -155,6 +155,7 @@ private:
 	std::shared_ptr<MediaPlayerObserverInterface> mPlayerObserver;
 	stream::InputHandler mInputHandler;
 	MediaQueue mObserverQueue;
+	std::atomic<uint8_t> mPlaybackCount;
 };
 } // namespace media
 #endif
